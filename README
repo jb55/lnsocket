@@ -1,0 +1,5 @@
+
+lnsocket
+========
+
+A simple C library for sending messages over the lightning network

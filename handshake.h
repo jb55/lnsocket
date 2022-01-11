@@ -2,11 +2,34 @@
 #ifndef LNLINK_HANDSHAKE_H
 #define LNLINK_HANDSHAKE_H
 
-#include <secp256k1/>
+#include "types.h"
+
+#include <sodium/crypto_aead_chacha20poly1305.h>
+#include <secp256k1_extrakeys.h>
+#include <sha256/sha256.h>
+
+#define PUBKEY_CMPR_LEN 33
+
+enum bolt8_side {
+	INITIATOR,
+	RESPONDER
+};
+
+struct secret {
+	u8 data[32];
+};
 
 struct pubkey {
-	/* Unpacked pubkey (as used by libsecp256k1 internally) */
-	secp256k1_pubkey pubkey;
+	u8 data[64];
+};
+
+struct privkey {
+	struct secret secret;
+};
+
+struct keypair {
+	struct pubkey pub;
+	struct privkey priv;
 };
 
 /* BOLT #8:
@@ -85,7 +108,7 @@ struct handshake {
 	struct act_three act3;
 
 	/* Where is connection from/to */
-	struct wireaddr_internal addr;
+	struct addrinfo addr;
 
 	/* Who we are */
 	struct pubkey my_id;
@@ -96,12 +119,14 @@ struct handshake {
 	enum bolt8_side side;
 
 	/* Function to call once handshake complete. */
+	/*
 	struct io_plan *(*cb)(struct io_conn *conn,
 			      const struct pubkey *their_id,
 			      const struct wireaddr_internal *wireaddr,
 			      struct crypto_state *cs,
 			      void *cbarg);
 	void *cbarg;
+	*/
 };
 
 #endif /* LNLINK_HANDSHAKE_H */

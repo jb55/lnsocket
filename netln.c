@@ -55,7 +55,7 @@ int connect_node(struct netln *netln, unsigned char *pubkey, const char *host)
 	return 1;
 }
 
-int act_one_initiator(int fd)
+void act_one_initiator(int fd)
 {
 
 }
