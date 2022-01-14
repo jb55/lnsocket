@@ -3,10 +3,10 @@
 #define LNLINK_HANDSHAKE_H
 
 #include "types.h"
+#include "sha256.h"
 
 #include <sodium/crypto_aead_chacha20poly1305.h>
 #include <secp256k1_extrakeys.h>
-#include <sha256/sha256.h>
 
 #define PUBKEY_CMPR_LEN 33
 
@@ -20,7 +20,7 @@ struct secret {
 };
 
 struct pubkey {
-	u8 data[64];
+	secp256k1_pubkey pubkey;
 };
 
 struct privkey {
@@ -99,7 +99,7 @@ struct handshake {
 	struct secret temp_k;
 	struct sha256 h;
 	struct keypair e;
-	struct secret *ss;
+	struct secret ss;
 
 	/* Used between the Acts */
 	struct pubkey re;

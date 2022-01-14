@@ -1,5 +1,7 @@
 .build-result
 .buildcmd
 /.direnv
-/netln
 /tags
+*.o
+/configurator
+/lnsocket

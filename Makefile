@@ -1,14 +1,21 @@
 
 CFLAGS=-Wall -g -Og -Ideps/secp256k1/include -Ideps/libsodium/src/libsodium/include -Ideps
-
 LDFLAGS=
 
 ARS=deps/secp256k1/.libs/libsecp256k1.a deps/libsodium/src/libsodium/.libs/libsodium.a
+OBJS=sha256.o hkdf.o hmac.o sha512.o
+DEPS=$(ARS) $(OBJS) config.h
 
-all: netln
+all: lnsocket
+
+config.h: configurator
+	./configurator > $@
+
+configurator: configurator.c
+	$(CC) $< -o $@
 
 deps/secp256k1/src/libsecp256k1-config.h: deps/secp256k1/configure
-	./configure
+	./configure --enable-module-ecdh
 
 deps/secp256k1/configure:
 	cd deps/secp256k1; \
@@ -27,14 +34,14 @@ deps/libsodium/src/libsodium/.libs/libsodium.a: deps/libsodium/configure
 	cd deps/libsodium/src/libsodium; \
 	make -j2 libsodium.la
 
-netln: netln.c $(ARS)
+lnsocket: lnsocket.c $(DEPS)
 	$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
 
 tags: fake
 	find . -name '*.c' -or -name '*.h' | xargs ctags
 
 clean: fake
-	rm -f netln
+	rm -f lnsocket $(DEPS) deps/secp256k1/src/libsecp256k1-config.h
 	cd deps/secp256k1; \
 	make clean
 	cd deps/libsodium; \
