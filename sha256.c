@@ -1,4 +1,3 @@
-
 /* MIT (BSD) license - see LICENSE file for details */
 /* SHA256 core code translated from the Bitcoin project's C++:
  *
