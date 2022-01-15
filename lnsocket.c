@@ -15,8 +15,10 @@
 #include <sodium/randombytes.h>
 
 #include "sha256.h"
+#include "compiler.h"
 #include "hkdf.h"
 #include "handshake.h"
+#include "endian.h"
 
 #define array_len(x) (sizeof(x)/sizeof(x[0]))
 
@@ -109,6 +111,53 @@ static void hkdf_two_keys(struct secret *out1, struct secret *out2,
 	*out2 = okm[1];
 }
 
+
+static void le64_nonce(unsigned char *npub, u64 nonce)
+{
+	/* BOLT #8:
+	 *
+	 * ...with nonce `n` encoded as 32 zero bits, followed by a
+	 * *little-endian* 64-bit value.  Note: this follows the Noise Protocol
+	 * convention, rather than our normal endian
+	 */
+	le64 le_nonce = cpu_to_le64(nonce);
+	const size_t zerolen = crypto_aead_chacha20poly1305_ietf_NPUBBYTES - sizeof(le_nonce);
+
+	BUILD_ASSERT(crypto_aead_chacha20poly1305_ietf_NPUBBYTES >= sizeof(le_nonce));
+	/* First part is 0, followed by nonce. */
+	memset(npub, 0, zerolen);
+	memcpy(npub + zerolen, &le_nonce, sizeof(le_nonce));
+}
+
+/* BOLT #8:
+ *   * `encryptWithAD(k, n, ad, plaintext)`: outputs `encrypt(k, n, ad,
+ *      plaintext)`
+ *      * Where `encrypt` is an evaluation of `ChaCha20-Poly1305` (IETF
+ *	  variant) with the passed arguments, with nonce `n`
+ */
+static void encrypt_ad(const struct secret *k, u64 nonce,
+		       const void *additional_data, size_t additional_data_len,
+		       const void *plaintext, size_t plaintext_len,
+		       void *output, size_t outputlen)
+{
+	unsigned char npub[crypto_aead_chacha20poly1305_ietf_NPUBBYTES];
+	unsigned long long clen;
+	int ret;
+
+	assert(outputlen == plaintext_len + crypto_aead_chacha20poly1305_ietf_ABYTES);
+	le64_nonce(npub, nonce);
+	BUILD_ASSERT(sizeof(*k) == crypto_aead_chacha20poly1305_ietf_KEYBYTES);
+
+	ret = crypto_aead_chacha20poly1305_ietf_encrypt(
+			output, &clen, memcheck(plaintext, plaintext_len),
+			plaintext_len, additional_data, additional_data_len,
+			NULL, npub, k->data);
+
+	assert(ret == 0);
+	assert(clen == plaintext_len + crypto_aead_chacha20poly1305_ietf_ABYTES);
+}
+
+
 int act_one_initiator(struct lnsocket *ln, struct handshake *h)
 {
 	h->e = generate_key(ln->secp_ctx);
@@ -139,6 +188,13 @@ int act_one_initiator(struct lnsocket *ln, struct handshake *h)
 	 *        used to generate the authenticating MAC.
 	 */
 	hkdf_two_keys(&h->ck, &h->temp_k, &h->ck, &h->ss, sizeof(h->ss));
+
+	/* BOLT #8:
+	 * 5. `c = encryptWithAD(temp_k1, 0, h, zero)`
+	 *     * where `zero` is a zero-length plaintext
+	 */
+	encrypt_ad(&h->temp_k, 0, &h->h, sizeof(h->h), NULL, 0,
+		   h->act1.tag, sizeof(h->act1.tag));
 
 	return 1;
 }

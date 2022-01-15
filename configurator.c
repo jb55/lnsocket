@@ -119,7 +119,26 @@ static const struct test base_tests[] = {
 	  "	int *x = (int *)pad, *y = (int *)(pad + 1);\n"
 	  "	return *x == *y;\n"
 	  "}\n" },
-
+	{ "HAVE_TYPEOF", "__typeof__ support",
+	  "INSIDE_MAIN", NULL, NULL,
+	  "__typeof__(argc) i; i = argc; return i == argc ? 0 : 1;" },
+	{ "HAVE_BIG_ENDIAN", "big endian",
+	  "INSIDE_MAIN|EXECUTE", NULL, NULL,
+	  "union { int i; char c[sizeof(int)]; } u;\n"
+	  "u.i = 0x01020304;\n"
+	  "return u.c[0] == 0x01 && u.c[1] == 0x02 && u.c[2] == 0x03 && u.c[3] == 0x04 ? 0 : 1;" },
+	{ "HAVE_BYTESWAP_H", "<byteswap.h>",
+	  "OUTSIDE_MAIN", NULL, NULL,
+	  "#include <byteswap.h>\n" },
+	{ "HAVE_BSWAP_64", "bswap64 in byteswap.h",
+	  "DEFINES_FUNC", "HAVE_BYTESWAP_H", NULL,
+	  "#include <byteswap.h>\n"
+	  "static int func(int x) { return bswap_64(x); }" },
+	{ "HAVE_LITTLE_ENDIAN", "little endian",
+	  "INSIDE_MAIN|EXECUTE", NULL, NULL,
+	  "union { int i; char c[sizeof(int)]; } u;\n"
+	  "u.i = 0x01020304;\n"
+	  "return u.c[0] == 0x04 && u.c[1] == 0x03 && u.c[2] == 0x02 && u.c[3] == 0x01 ? 0 : 1;" },
 	/*
 	{ "HAVE_32BIT_OFF_T", "off_t is 32 bits",
 	  "DEFINES_EVERYTHING|EXECUTE|MAY_NOT_COMPILE", NULL, NULL,
@@ -186,15 +205,6 @@ static const struct test base_tests[] = {
 	  "	void *bt[10];\n"
 	  "	return backtrace(bt, 10) < x;\n"
 	  "}" },
-	{ "HAVE_BIG_ENDIAN", "big endian",
-	  "INSIDE_MAIN|EXECUTE", NULL, NULL,
-	  "union { int i; char c[sizeof(int)]; } u;\n"
-	  "u.i = 0x01020304;\n"
-	  "return u.c[0] == 0x01 && u.c[1] == 0x02 && u.c[2] == 0x03 && u.c[3] == 0x04 ? 0 : 1;" },
-	{ "HAVE_BSWAP_64", "bswap64 in byteswap.h",
-	  "DEFINES_FUNC", "HAVE_BYTESWAP_H", NULL,
-	  "#include <byteswap.h>\n"
-	  "static int func(int x) { return bswap_64(x); }" },
 	{ "HAVE_BUILTIN_CHOOSE_EXPR", "__builtin_choose_expr support",
 	  "INSIDE_MAIN", NULL, NULL,
 	  "return __builtin_choose_expr(1, 0, \"garbage\");" },
@@ -249,9 +259,6 @@ static const struct test base_tests[] = {
 	  "int func(int v) {\n"
 	  "	return __CLZ(__RBIT(v));\n"
 	  "}" },
-	{ "HAVE_BYTESWAP_H", "<byteswap.h>",
-	  "OUTSIDE_MAIN", NULL, NULL,
-	  "#include <byteswap.h>\n" },
 	{ "HAVE_CLOCK_GETTIME", "clock_gettime() declaration",
 	  "DEFINES_FUNC", "HAVE_STRUCT_TIMESPEC", NULL,
 	  "#include <time.h>\n"
@@ -325,11 +332,6 @@ static const struct test base_tests[] = {
 	  "#endif\n"
 	  "#include <ctype.h>\n"
 	  "static int func(void) { return isblank(' '); }" },
-	{ "HAVE_LITTLE_ENDIAN", "little endian",
-	  "INSIDE_MAIN|EXECUTE", NULL, NULL,
-	  "union { int i; char c[sizeof(int)]; } u;\n"
-	  "u.i = 0x01020304;\n"
-	  "return u.c[0] == 0x04 && u.c[1] == 0x03 && u.c[2] == 0x02 && u.c[3] == 0x01 ? 0 : 1;" },
 	{ "HAVE_MEMMEM", "memmem in <string.h>",
 	  "DEFINES_FUNC", NULL, NULL,
 	  "#ifndef _GNU_SOURCE\n"
@@ -416,9 +418,6 @@ static const struct test base_tests[] = {
 	{ "HAVE_SYS_UNISTD_H", "<sys/unistd.h>",
 	  "OUTSIDE_MAIN", NULL, NULL,
 	  "#include <sys/unistd.h>\n" },
-	{ "HAVE_TYPEOF", "__typeof__ support",
-	  "INSIDE_MAIN", NULL, NULL,
-	  "__typeof__(argc) i; i = argc; return i == argc ? 0 : 1;" },
 	{ "HAVE_UTIME", "utime() declaration",
 	  "DEFINES_FUNC", NULL, NULL,
 	  "#include <sys/types.h>\n"

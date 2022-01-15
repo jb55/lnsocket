@@ -54,4 +54,32 @@
 #define memclear_2(m1, s1, m2, s2) { memclear(m1, s1); memclear(m2, s2); }
 #define memclear_3(m1, s1, m2, s2, m3, s3) { memclear(m1, s1); memclear(m2, s2); memclear(m3, s3); }
 
+static inline void *memcheck_(const void *data, size_t len)
+{
+	(void)len;
+	return (void *)data;
+}
+
+#if HAVE_TYPEOF
+/**
+ * memcheck - check that a memory region is initialized
+ * @data: start of region
+ * @len: length in bytes
+ *
+ * When running under valgrind, this causes an error to be printed
+ * if the entire region is not defined.  Otherwise valgrind only
+ * reports an error when an undefined value is used for a branch, or
+ * written out.
+ *
+ * Example:
+ *	// Search for space, but make sure it's all initialized.
+ *	if (memchr(memcheck(somebytes, bytes_len), ' ', bytes_len)) {
+ *		printf("space was found!\n");
+ *	}
+ */
+#define memcheck(data, len) ((__typeof__((data)+0))memcheck_((data), (len)))
+#else
+#define memcheck(data, len) memcheck_((data), (len))
+#endif
+
 #endif /* COMPILER_H */
