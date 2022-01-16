@@ -127,12 +127,14 @@ static inline void check_act_one(const struct act_one *act1)
 	BUILD_ASSERT(sizeof(act1->tag) == 16);
 }
 
+/*
 static void print_hex(u8 *bytes, int len) {
 	int i;
 	for (i = 0; i < len; ++i) {
 		printf("%02x", bytes[i]);
 	}
 }
+*/
 
 void new_handshake(secp256k1_context *secp, struct handshake *handshake,
 		const struct pubkey *responder_id)
@@ -179,6 +181,7 @@ void new_handshake(secp256k1_context *secp, struct handshake *handshake,
 	sha_mix_in_key(secp, &handshake->h, responder_id);
 }
 
+/*
 static void print_act_two(struct act_two *two)
 {
 	printf("ACT2 v %d pubkey ", two->v);
@@ -187,6 +190,7 @@ static void print_act_two(struct act_two *two)
 	print_hex(two->tag, sizeof(two->tag));
 	printf("\n");
 }
+*/
 
 /* BOLT #8:
  *    * `decryptWithAD(k, n, ad, ciphertext)`: outputs `decrypt(k, n, ad,
@@ -322,7 +326,7 @@ static int act_two_initiator(struct lnsocket *ln, struct handshake *h)
 		return note_error(&ln->errs, "%s", strerror(errno));
 	}
 
-	print_act_two(&h->act2);
+	//print_act_two(&h->act2);
 
 	/* BOLT #8:
 	 *
