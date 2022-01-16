@@ -24,42 +24,20 @@ THE SOFTWARE.
 
 #include "typedefs.h"
 #include "sha256.h"
+#include "crypto.h"
 
 #include <netdb.h>
 
 #include <sodium/crypto_aead_chacha20poly1305.h>
 #include <secp256k1_extrakeys.h>
 
-#define PUBKEY_CMPR_LEN 33
-
 #define ACT_ONE_SIZE 50
 #define ACT_TWO_SIZE 50
 #define ACT_THREE_SIZE 66
 
-struct node_id {
-	u8 k[PUBKEY_CMPR_LEN];
-};
-
 enum bolt8_side {
 	INITIATOR,
 	RESPONDER
-};
-
-struct secret {
-	u8 data[32];
-};
-
-struct pubkey {
-	secp256k1_pubkey pubkey;
-};
-
-struct privkey {
-	struct secret secret;
-};
-
-struct keypair {
-	struct pubkey pub;
-	struct privkey priv;
 };
 
 /* BOLT #8:

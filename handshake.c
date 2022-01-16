@@ -218,6 +218,33 @@ static int decrypt(const struct secret *k, u64 nonce,
 	return 1;
 }
 
+static int handshake_success(struct lnsocket *ln, struct handshake *h)
+{
+	struct crypto_state *cs = &ln->crypto_state;
+
+	/* BOLT #8:
+	 *
+	 * 9. `rk, sk = HKDF(ck, zero)`
+	 *      * where `zero` is a zero-length plaintext, `rk` is the key to
+	 *        be used by the responder to decrypt the messages sent by the
+	 *        initiator, and `sk` is the key to be used by the responder
+	 *        to encrypt messages to the initiator
+	 *
+	 *      * The final encryption keys, to be used for sending and
+	 *        receiving messages for the duration of the session, are
+	 *        generated.
+	 */
+	if (h->side == RESPONDER)
+		hkdf_two_keys(&cs->rk, &cs->sk, &h->ck, NULL, 0);
+	else
+		hkdf_two_keys(&cs->sk, &cs->rk, &h->ck, NULL, 0);
+
+	cs->rn = cs->sn = 0;
+	cs->r_ck = cs->s_ck = h->ck;
+
+	return 1;
+}
+
 static int act_three_initiator(struct lnsocket *ln, struct handshake *h)
 {
 	u8 spub[PUBKEY_CMPR_LEN];
@@ -274,7 +301,7 @@ static int act_three_initiator(struct lnsocket *ln, struct handshake *h)
 		return note_error(&ln->errs, "handshake failed on initial send");
 	}
 
-	return note_error(&ln->errs, "handshake success!\n");
+	return handshake_success(ln, h);
 }
 
 // act2: read the response to the message sent in act1
