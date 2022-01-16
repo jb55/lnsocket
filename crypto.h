@@ -43,4 +43,6 @@ void hkdf_two_keys(struct secret *out1, struct secret *out2,
 			  const struct secret *in1,
 			  const struct secret *in2);
 
+unsigned char *cryptomsg_encrypt_msg(struct crypto_state *cs, const u8 *msg, unsigned long long mlen, u8 *out, size_t *outlen, size_t outcap);
+
 #endif /* LNSOCKET_CRYPTO_H */

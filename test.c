@@ -16,6 +16,15 @@ int main(int argc, const char *argv[])
 	}
 
 	printf("connected!\n");
+
+	const unsigned char msg[] = {'h', 'i'};
+
+	if (!lnsocket_write(ln, msg, sizeof(msg))) {
+		lnsocket_print_errors(ln);
+		goto done;
+	}
+
+	printf("wrote message.\n");
 done:
 	lnsocket_destroy(ln);
 	return !ok;

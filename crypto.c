@@ -150,8 +150,12 @@ u8 *cryptomsg_encrypt_msg(struct crypto_state *cs, const u8 *msg, unsigned long 
 	be16 l;
 	int ret;
 
-	if (outcap < sizeof(l) + 16 + mlen + 16)
+	*outlen = sizeof(l) + 16 + mlen + 16; 
+
+	if (outcap < *outlen) {
+		*outlen = 0;
 		return NULL;
+	}
 
 	/* BOLT #8:
 	 *

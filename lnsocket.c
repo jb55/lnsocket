@@ -74,6 +74,32 @@ static int pubkey_from_node_id(secp256k1_context *secp, struct pubkey *key,
 					 sizeof(id->k));
 }
 
+int lnsocket_write(struct lnsocket *ln, const u8 *msg, int msglen)
+{
+	// this is just temporary so we don't need to move the memory cursor
+	u8 *out = ln->mem.p;
+	ssize_t outcap = ln->mem.end - ln->mem.p;
+	ssize_t writelen;
+	size_t outlen;
+
+	if (!ln->socket)
+		return note_error(&ln->errs, "not connected");
+
+	if (outcap <= 0)
+		return note_error(&ln->errs, "out of memory");
+
+	if (!cryptomsg_encrypt_msg(&ln->crypto_state, msg, msglen, out, &outlen, (size_t)outcap))
+		return note_error(&ln->errs, "encrypt message failed, out of memory");
+
+	if ((writelen = write(ln->socket, out, outlen)) != outlen)
+		return note_error(&ln->errs,
+				"write failed. wrote %ld bytes, expected %ld %s",
+				writelen, outlen,
+				writelen < 0 ? strerror(errno) : "");
+
+	return 1;
+}
+
 struct lnsocket *lnsocket_create_with(int memory)
 {
 	struct cursor mem;
