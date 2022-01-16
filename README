@@ -4,8 +4,22 @@ lnsocket
 
 A simple C library for sending messages over the lightning network
 
+Work in progress!
+
 
 Building
 --------
 
 make
+
+
+Contributing
+------------
+
+Send patches to me at jb55@jb55.com:
+
+$ git config format.subjectPrefix 'PATCH lnsocket'
+$ git config sendemail.to 'William Casarin <jb55@jb55.com>'
+$ git send-email --annotate HEAD^
+
+See https://git-send-email.io/ for configuring your mailer
