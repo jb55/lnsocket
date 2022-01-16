@@ -1,5 +1,5 @@
+/* MIT (BSD) license */
 
-/* MIT (BSD) license - see LICENSE file for details */
 #include "hmac.h"
 #include "sha256.h"
 #include <assert.h>

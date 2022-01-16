@@ -92,14 +92,16 @@ static struct keypair generate_key(secp256k1_context *ctx)
 }
 
 
-static void push_error(struct lnsocket *lnsocket, const char *err)
+static int push_error(struct lnsocket *lnsocket, const char *err)
 {
 	if (lnsocket->num_errors >= array_len(lnsocket->errors)) {
 		// TODO: push out old errors instead
-		return;
+		return 0;
 	}
 
 	lnsocket->errors[lnsocket->num_errors++] = err;
+
+	return 0;
 }
 
 static void lnsocket_init(struct lnsocket *lnsocket)
@@ -132,12 +134,6 @@ static void sha_mix_in_key(secp256k1_context *ctx, struct sha256 *h,
 				      SECP256K1_EC_COMPRESSED);
 	assert(len == sizeof(der));
 	sha_mix_in(h, der, sizeof(der));
-}
-
-static int handshake_failed(struct lnsocket *ln, struct handshake *h)
-{
-	push_error(ln, "handshake failed");
-	return 0;
 }
 
 /* out1, out2 = HKDF(in1, in2)` */
@@ -276,11 +272,102 @@ static void print_act_two(struct act_two *two)
 {
 	printf("ACT2 v %d pubkey ", two->v);
 	print_hex(two->pubkey, sizeof(two->pubkey));
-	printf("tag ");
+	printf(" tag ");
 	print_hex(two->tag, sizeof(two->tag));
 	printf("\n");
 }
 
+/* BOLT #8:
+ *    * `decryptWithAD(k, n, ad, ciphertext)`: outputs `decrypt(k, n, ad,
+ *       ciphertext)`
+ *      * Where `decrypt` is an evaluation of `ChaCha20-Poly1305` (IETF
+ *        variant) with the passed arguments, with nonce `n`
+ */
+static int decrypt(const struct secret *k, u64 nonce,
+		const void *additional_data, size_t additional_data_len,
+		const void *ciphertext, size_t ciphertext_len,
+		void *output, size_t outputlen)
+{
+	unsigned char npub[crypto_aead_chacha20poly1305_ietf_NPUBBYTES];
+	unsigned long long mlen;
+
+	assert(outputlen == ciphertext_len - crypto_aead_chacha20poly1305_ietf_ABYTES);
+
+	le64_nonce(npub, nonce);
+	BUILD_ASSERT(sizeof(*k) == crypto_aead_chacha20poly1305_ietf_KEYBYTES);
+	if (crypto_aead_chacha20poly1305_ietf_decrypt(output, &mlen, NULL,
+						 memcheck(ciphertext, ciphertext_len),
+						 ciphertext_len,
+						 additional_data, additional_data_len,
+						 npub, k->data) != 0) {
+		return 0;
+	}
+
+	assert(mlen == ciphertext_len - crypto_aead_chacha20poly1305_ietf_ABYTES);
+	return 1;
+}
+
+static int act_three_initiator(struct lnsocket *ln, struct handshake *h)
+{
+	u8 spub[PUBKEY_CMPR_LEN];
+	size_t len = sizeof(spub);
+
+	/* BOLT #8:
+	 * 1. `c = encryptWithAD(temp_k2, 1, h, s.pub.serializeCompressed())`
+	 *     * where `s` is the static public key of the initiator
+	 */
+	secp256k1_ec_pubkey_serialize(ln->secp, spub, &len,
+				      &h->my_id.pub.pubkey,
+				      SECP256K1_EC_COMPRESSED);
+	encrypt_ad(&h->temp_k, 1, &h->h, sizeof(h->h), spub, sizeof(spub),
+		   h->act3.ciphertext, sizeof(h->act3.ciphertext));
+
+	/* BOLT #8:
+	 * 2. `h = SHA-256(h || c)`
+	 */
+	sha_mix_in(&h->h, h->act3.ciphertext, sizeof(h->act3.ciphertext));
+
+	/* BOLT #8:
+	 *
+	 * 3. `se = ECDH(s.priv, re)`
+	 *     * where `re` is the ephemeral public key of the responder
+	 */
+	if (!secp256k1_ecdh(ln->secp, h->ss.data, &h->re.pubkey,
+			    h->my_id.priv.secret.data, NULL, NULL))
+		return push_error(ln, "act3 ecdh handshake failed");
+
+	/* BOLT #8:
+	 *
+	 * 4. `ck, temp_k3 = HKDF(ck, se)`
+	 *     * The final intermediate shared secret is mixed into the running chaining key.
+	 */
+	hkdf_two_keys(&h->ck, &h->temp_k, &h->ck, &h->ss, sizeof(h->ss));
+
+	/* BOLT #8:
+	 *
+	 * 5. `t = encryptWithAD(temp_k3, 0, h, zero)`
+	 *      * where `zero` is a zero-length plaintext
+	 *
+	 */
+	encrypt_ad(&h->temp_k, 0, &h->h, sizeof(h->h), NULL, 0,
+		   h->act3.tag, sizeof(h->act3.tag));
+
+	/* BOLT #8:
+	 *
+	 * 8.  Send `m = 0 || c || t` over the network buffer.
+	 *
+	 */
+	h->act3.v = 0;
+
+	if (write(ln->socket, &h->act3, ACT_THREE_SIZE) != ACT_THREE_SIZE) {
+		return push_error(ln, "handshake failed on initial send");
+	}
+
+	printf("handshake success!\n");
+	return 0;
+}
+
+// act2: read the response to the message sent in act1
 static int act_two_initiator(struct lnsocket *ln, struct handshake *h)
 {
 	/* BOLT #8:
@@ -295,14 +382,79 @@ static int act_two_initiator(struct lnsocket *ln, struct handshake *h)
 
 	if ((size = read(ln->socket, &h->act2, ACT_TWO_SIZE)) != ACT_TWO_SIZE) {
 		printf("read %ld bytes, expected %d\n", size, ACT_TWO_SIZE);
-		push_error(ln, strerror(errno));
-		return 0;
+		return push_error(ln, strerror(errno));
 	}
 
 	print_act_two(&h->act2);
-	return 0;
+
+	/* BOLT #8:
+	 *
+	 * 3. If `v` is an unrecognized handshake version, then the responder
+	 *     MUST abort the connection attempt.
+	 */
+	if (h->act2.v != 0)
+		return push_error(ln, "unrecognized handshake version");
+
+	/* BOLT #8:
+	 *
+	 *     * The raw bytes of the remote party's ephemeral public key
+	 *       (`re`) are to be deserialized into a point on the curve using
+	 *       affine coordinates as encoded by the key's serialized
+	 *       composed format.
+	 */
+	if (secp256k1_ec_pubkey_parse(ln->secp, &h->re.pubkey, h->act2.pubkey,
+				sizeof(h->act2.pubkey)) != 1) {
+		return push_error(ln, "failed to parse remote pubkey");
+	}
+
+	/* BOLT #8:
+	 *
+	 * 4. `h = SHA-256(h || re.serializeCompressed())`
+	 */
+	sha_mix_in_key(ln->secp, &h->h, &h->re);
+
+	/* BOLT #8:
+	 *
+	 * 5. `es = ECDH(s.priv, re)`
+	 */
+	if (!secp256k1_ecdh(ln->secp, h->ss.data, &h->re.pubkey,
+			    h->e.priv.secret.data, NULL, NULL)) {
+		return push_error(ln, "act2 ecdh failed");
+	}
+
+	/* BOLT #8:
+	 *
+	 * 6. `ck, temp_k2 = HKDF(ck, ee)`
+	 *      * A new temporary encryption key is generated, which is
+	 *        used to generate the authenticating MAC.
+	 */
+	hkdf_two_keys(&h->ck, &h->temp_k, &h->ck, &h->ss, sizeof(h->ss));
+
+	/* BOLT #8:
+	 *
+	 * 7. `p = decryptWithAD(temp_k2, 0, h, c)`
+	 *     * If the MAC check in this operation fails, then the initiator
+	 *       MUST terminate the connection without any further messages.
+	 */
+	if (!decrypt(&h->temp_k, 0, &h->h, sizeof(h->h),
+		     h->act2.tag, sizeof(h->act2.tag), NULL, 0)) {
+		return push_error(ln, "handshake decrypt failed");
+	}
+
+	/* BOLT #8:
+	 *
+	 * 8. `h = SHA-256(h || c)`
+	 *     * The received ciphertext is mixed into the handshake digest.
+	 *       This step serves to ensure the payload wasn't modified by a
+	 *       MITM.
+	 */
+	sha_mix_in(&h->h, h->act2.tag, sizeof(h->act2.tag));
+
+	return act_three_initiator(ln, h);
 }
 
+// Prepare the very first message and send it the connected node
+// Wait for a response in act2
 int act_one_initiator(struct lnsocket *ln, struct handshake *h)
 {
 	h->e = generate_key(ln->secp);
@@ -323,8 +475,10 @@ int act_one_initiator(struct lnsocket *ln, struct handshake *h)
 	 */
 	if (!secp256k1_ecdh(ln->secp, h->ss.data,
 			    &h->their_id.pubkey, h->e.priv.secret.data,
-			    NULL, NULL))
-		return handshake_failed(ln, h);
+			    NULL, NULL)) {
+		push_error(ln, "handshake failed, secp256k1_ecdh error");
+		return 0;
+	}
 
 	/* BOLT #8:
 	 *
@@ -360,8 +514,10 @@ int act_one_initiator(struct lnsocket *ln, struct handshake *h)
 
 	check_act_one(&h->act1);
 
-	if (write(ln->socket, &h->act1, ACT_ONE_SIZE) != ACT_ONE_SIZE)
-		return handshake_failed(ln, h);
+	if (write(ln->socket, &h->act1, ACT_ONE_SIZE) != ACT_ONE_SIZE) {
+		push_error(ln, "handshake failed on initial send");
+		return 0;
+	}
 
 	return act_two_initiator(ln, h);
 }
@@ -375,38 +531,45 @@ int connect_node(struct lnsocket *ln, const char *node_id, const char *host)
 	struct pubkey their_id;
 	struct node_id their_node_id;
 
+	// convert node_id string to bytes
 	if (!parse_node_id(node_id, &their_node_id)) {
 		push_error(ln, "failed to parse node id");
 		return 0;
 	}
 
+	// encode node_id bytes to secp pubkey
 	if (!pubkey_from_node_id(ln->secp, &their_id, &their_node_id)) {
 		push_error(ln, "failed to convert node_id to pubkey");
 		return 0;
 	}
 
+	// parse ip into addrinfo
 	if ((ret = getaddrinfo(host, "9735", NULL, &addrs)) || !addrs) {
 		push_error(ln, gai_strerror(ret));
 		return 0;
 	}
 
+	// create our network socket for comms
 	if (!(ln->socket = socket(AF_INET, SOCK_STREAM, 0))) {
 		push_error(ln, "creating socket failed");
 		return 0;
 	}
 
+	// connect to the node!
 	if (connect(ln->socket, addrs->ai_addr, addrs->ai_addrlen) == -1) {
 		push_error(ln, strerror(errno));
 		return 0;
 	}
 
+	// prepare some data for ACT1
 	my_id = generate_key(ln->secp);
 	new_handshake(ln->secp, &h, &their_id);
 
 	h.side = INITIATOR;
-	h.my_id = my_id.pub;
+	h.my_id = my_id;
 	h.their_id = their_id;
 
+	// let's do this!
 	return act_one_initiator(ln, &h);
 }
 

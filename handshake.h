@@ -29,8 +29,10 @@ THE SOFTWARE.
 #include <secp256k1_extrakeys.h>
 
 #define PUBKEY_CMPR_LEN 33
+
 #define ACT_ONE_SIZE 50
 #define ACT_TWO_SIZE 50
+#define ACT_THREE_SIZE 66
 
 struct node_id {
 	u8 k[PUBKEY_CMPR_LEN];
@@ -137,7 +139,7 @@ struct handshake {
 	struct addrinfo addr;
 
 	/* Who we are */
-	struct pubkey my_id;
+	struct keypair my_id;
 	/* Who they are: set already if we're initiator. */
 	struct pubkey their_id;
 
