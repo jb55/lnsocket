@@ -68,44 +68,6 @@ static void sha_mix_in_key(secp256k1_context *ctx, struct sha256 *h,
 	sha_mix_in(h, der, sizeof(der));
 }
 
-/* out1, out2 = HKDF(in1, in2)` */
-static void hkdf_two_keys(struct secret *out1, struct secret *out2,
-			  const struct secret *in1,
-			  const void *in2, size_t in2_size)
-{
-	/* BOLT #8:
-	 *
-	 *   * `HKDF(salt,ikm)`: a function defined in `RFC 5869`<sup>[3](#reference-3)</sup>,
-	 *      evaluated with a zero-length `info` field
-	 *      * All invocations of `HKDF` implicitly return 64 bytes
-	 *        of cryptographic randomness using the extract-and-expand
-	 *        component of the `HKDF`.
-	 */
-	struct secret okm[2];
-
-	hkdf_sha256(okm, sizeof(okm), in1, sizeof(*in1), in2, in2_size,
-		    NULL, 0);
-	*out1 = okm[0];
-	*out2 = okm[1];
-}
-
-
-static void le64_nonce(unsigned char *npub, u64 nonce)
-{
-	/* BOLT #8:
-	 *
-	 * ...with nonce `n` encoded as 32 zero bits, followed by a
-	 * *little-endian* 64-bit value.  Note: this follows the Noise Protocol
-	 * convention, rather than our normal endian
-	 */
-	le64 le_nonce = cpu_to_le64(nonce);
-	const size_t zerolen = crypto_aead_chacha20poly1305_ietf_NPUBBYTES - sizeof(le_nonce);
-
-	BUILD_ASSERT(crypto_aead_chacha20poly1305_ietf_NPUBBYTES >= sizeof(le_nonce));
-	/* First part is 0, followed by nonce. */
-	memset(npub, 0, zerolen);
-	memcpy(npub + zerolen, &le_nonce, sizeof(le_nonce));
-}
 
 /* BOLT #8:
  *   * `encryptWithAD(k, n, ad, plaintext)`: outputs `encrypt(k, n, ad,
@@ -260,9 +222,9 @@ static int handshake_success(struct lnsocket *ln, struct handshake *h)
 	 *        generated.
 	 */
 	if (h->side == RESPONDER)
-		hkdf_two_keys(&cs->rk, &cs->sk, &h->ck, NULL, 0);
+		hkdf_two_keys(&cs->rk, &cs->sk, &h->ck, NULL);
 	else
-		hkdf_two_keys(&cs->sk, &cs->rk, &h->ck, NULL, 0);
+		hkdf_two_keys(&cs->sk, &cs->rk, &h->ck, NULL);
 
 	cs->rn = cs->sn = 0;
 	cs->r_ck = cs->s_ck = h->ck;
@@ -304,7 +266,7 @@ static int act_three_initiator(struct lnsocket *ln, struct handshake *h)
 	 * 4. `ck, temp_k3 = HKDF(ck, se)`
 	 *     * The final intermediate shared secret is mixed into the running chaining key.
 	 */
-	hkdf_two_keys(&h->ck, &h->temp_k, &h->ck, &h->ss, sizeof(h->ss));
+	hkdf_two_keys(&h->ck, &h->temp_k, &h->ck, &h->ss);
 
 	/* BOLT #8:
 	 *
@@ -390,7 +352,7 @@ static int act_two_initiator(struct lnsocket *ln, struct handshake *h)
 	 *      * A new temporary encryption key is generated, which is
 	 *        used to generate the authenticating MAC.
 	 */
-	hkdf_two_keys(&h->ck, &h->temp_k, &h->ck, &h->ss, sizeof(h->ss));
+	hkdf_two_keys(&h->ck, &h->temp_k, &h->ck, &h->ss);
 
 	/* BOLT #8:
 	 *
@@ -448,7 +410,7 @@ int act_one_initiator(struct lnsocket *ln, struct handshake *h)
 	 *      * A new temporary encryption key is generated, which is
 	 *        used to generate the authenticating MAC.
 	 */
-	hkdf_two_keys(&h->ck, &h->temp_k, &h->ck, &h->ss, sizeof(h->ss));
+	hkdf_two_keys(&h->ck, &h->temp_k, &h->ck, &h->ss);
 
 	/* BOLT #8:
 	 * 5. `c = encryptWithAD(temp_k1, 0, h, zero)`

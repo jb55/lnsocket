@@ -3,6 +3,7 @@
 #define LNSOCKET_CRYPTO_H
 
 #include <secp256k1.h>
+#include "typedefs.h"
 
 #define PUBKEY_CMPR_LEN 33
 
@@ -36,5 +37,10 @@ struct crypto_state {
 	struct secret s_ck, r_ck;
 };
 
+void le64_nonce(unsigned char *npub, u64 nonce);
+
+void hkdf_two_keys(struct secret *out1, struct secret *out2,
+			  const struct secret *in1,
+			  const struct secret *in2);
 
 #endif /* LNSOCKET_CRYPTO_H */
