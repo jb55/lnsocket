@@ -134,40 +134,28 @@ int lnsocket_connect(struct lnsocket *ln, const char *node_id, const char *host)
 	struct pubkey their_id;
 	struct node_id their_node_id;
 
-	if (is_zero(&ln->key, sizeof(ln->key))) {
-		note_error(&ln->errs, "key not initialized, use lnsocket_set_key() or lnsocket_genkey()");
-		return 0;
-	}
+	if (is_zero(&ln->key, sizeof(ln->key)))
+		return note_error(&ln->errs, "key not initialized, use lnsocket_set_key() or lnsocket_genkey()");
 
 	// convert node_id string to bytes
-	if (!parse_node_id(node_id, &their_node_id)) {
-		note_error(&ln->errs, "failed to parse node id");
-		return 0;
-	}
+	if (!parse_node_id(node_id, &their_node_id))
+		return note_error(&ln->errs, "failed to parse node id");
 
 	// encode node_id bytes to secp pubkey
-	if (!pubkey_from_node_id(ln->secp, &their_id, &their_node_id)) {
-		note_error(&ln->errs, "failed to convert node_id to pubkey");
-		return 0;
-	}
+	if (!pubkey_from_node_id(ln->secp, &their_id, &their_node_id))
+		return note_error(&ln->errs, "failed to convert node_id to pubkey");
 
 	// parse ip into addrinfo
-	if ((ret = getaddrinfo(host, "9735", NULL, &addrs)) || !addrs) {
-		note_error(&ln->errs, "%s", gai_strerror(ret));
-		return 0;
-	}
+	if ((ret = getaddrinfo(host, "9735", NULL, &addrs)) || !addrs)
+		return note_error(&ln->errs, "%s", gai_strerror(ret));
 
 	// create our network socket for comms
-	if (!(ln->socket = socket(AF_INET, SOCK_STREAM, 0))) {
-		note_error(&ln->errs, "creating socket failed");
-		return 0;
-	}
+	if (!(ln->socket = socket(AF_INET, SOCK_STREAM, 0)))
+		return note_error(&ln->errs, "creating socket failed");
 
 	// connect to the node!
-	if (connect(ln->socket, addrs->ai_addr, addrs->ai_addrlen) == -1) {
-		note_error(&ln->errs, "%s", strerror(errno));
-		return 0;
-	}
+	if (connect(ln->socket, addrs->ai_addr, addrs->ai_addrlen) == -1)
+		return note_error(&ln->errs, "%s", strerror(errno));
 
 	// prepare some data for ACT1
 	new_handshake(ln->secp, &h, &their_id);
