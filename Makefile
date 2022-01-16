@@ -3,10 +3,10 @@ CFLAGS=-Wall -g -Og -Ideps/secp256k1/include -Ideps/libsodium/src/libsodium/incl
 LDFLAGS=
 
 ARS=deps/secp256k1/.libs/libsecp256k1.a deps/libsodium/src/libsodium/.libs/libsodium.a
-OBJS=sha256.o hkdf.o hmac.o sha512.o lnsocket.o
+OBJS=sha256.o hkdf.o hmac.o sha512.o lnsocket.o error.o handshake.o
 DEPS=$(OBJS) config.h
 
-all: lnsocket
+all: test
 
 config.h: configurator
 	./configurator > $@
@@ -37,14 +37,15 @@ deps/libsodium/src/libsodium/.libs/libsodium.a: deps/libsodium/configure
 	cd deps/libsodium/src/libsodium; \
 	make -j2 libsodium.la
 
-lnsocket: $(DEPS) $(ARS)
-	$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
+test: test.o $(DEPS) $(ARS)
+	@echo "ld test"
+	@$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
 
 tags: fake
 	find . -name '*.c' -or -name '*.h' | xargs ctags
 
 clean: fake
-	rm -f lnsocket $(DEPS) 
+	rm -f test lnsocket $(DEPS) 
 
 deepclean: clean
 	rm -f $(ARS) deps/secp256k1/src/libsecp256k1-config.h

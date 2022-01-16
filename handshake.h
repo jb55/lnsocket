@@ -22,8 +22,10 @@ THE SOFTWARE.
 #ifndef LNLINK_HANDSHAKE_H
 #define LNLINK_HANDSHAKE_H
 
-#include "types.h"
+#include "typedefs.h"
 #include "sha256.h"
+
+#include <netdb.h>
 
 #include <sodium/crypto_aead_chacha20poly1305.h>
 #include <secp256k1_extrakeys.h>
@@ -138,8 +140,6 @@ struct handshake {
 	/* Where is connection from/to */
 	struct addrinfo addr;
 
-	/* Who we are */
-	struct keypair my_id;
 	/* Who they are: set already if we're initiator. */
 	struct pubkey their_id;
 
@@ -156,5 +156,13 @@ struct handshake {
 	void *cbarg;
 	*/
 };
+
+void new_handshake(secp256k1_context *secp, struct handshake *handshake,
+		const struct pubkey *responder_id);
+
+struct lnsocket;
+
+int act_one_initiator(struct lnsocket *ln, struct handshake *h);
+struct keypair generate_key(secp256k1_context *ctx);
 
 #endif /* LNLINK_HANDSHAKE_H */
