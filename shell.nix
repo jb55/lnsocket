@@ -1,6 +1,5 @@
 { pkgs ? import <nixpkgs> {} }:
-with pkgs;
-mkShell {
+pkgs.mkShell {
   buildInputs = [ ];
-  nativeBuildInputs = [ gdb autoreconfHook clib ];
+  nativeBuildInputs = with pkgs; [ gdb autoreconfHook ];
 }
