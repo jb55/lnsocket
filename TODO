@@ -1,2 +1,2 @@
-tlv messages +lnsocket
+(A) tlv messages +lnsocket
 pull only what is needed from secp and sodium +lnsocket
