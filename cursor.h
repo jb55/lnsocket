@@ -1,7 +1,7 @@
 
 
-#ifndef PROTOVERSE_CURSOR_H
-#define PROTOVERSE_CURSOR_H
+#ifndef LNSOCKET_CURSOR_H
+#define LNSOCKET_CURSOR_H
 
 #include "typedefs.h"
 #include "varint.h"
