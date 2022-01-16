@@ -2,6 +2,8 @@
 CFLAGS=-Wall -g -Og -Ideps/secp256k1/include -Ideps/libsodium/src/libsodium/include -Ideps
 LDFLAGS=
 
+SUBMODULES=deps/libsodium deps/secp256k1
+
 ARS=deps/secp256k1/.libs/libsecp256k1.a deps/libsodium/src/libsodium/.libs/libsodium.a
 OBJS=sha256.o hkdf.o hmac.o sha512.o lnsocket.o error.o handshake.o
 DEPS=$(OBJS) config.h
@@ -9,10 +11,10 @@ DEPS=$(OBJS) config.h
 all: test
 
 deps/libsodium/.git:
-	@tools/refresh-submodules.sh deps/libsodium
+	@tools/refresh-submodules.sh $(SUBMODULES)
 
 deps/secp256k1/.git:
-	@tools/refresh-submodules.sh deps/secp256k1
+	@tools/refresh-submodules.sh $(SUBMODULES)
 
 config.h: configurator
 	./configurator > $@
