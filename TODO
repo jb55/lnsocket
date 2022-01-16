@@ -1,2 +1,4 @@
-(A) tlv messages +lnsocket
-pull only what is needed from secp and sodium +lnsocket
+(A) tlv messages
+pull only what is needed from secp and sodium
+static lib
+dynamic lib
