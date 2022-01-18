@@ -1,4 +1,3 @@
-(A) tlv messages
 pull only what is needed from secp and sodium
 static lib
 dynamic lib
