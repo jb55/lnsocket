@@ -86,7 +86,7 @@ int cryptomsg_decrypt_body(struct crypto_state *cs, const u8 *in, size_t inlen, 
 	unsigned char npub[crypto_aead_chacha20poly1305_ietf_NPUBBYTES];
 	unsigned long long mlen;
 
-	if (inlen < 16 || outcap < inlen - 16)
+	if (inlen < 16 || outcap < cryptomsg_decrypt_size(inlen))
 		return 0;
 
 	le64_nonce(npub, cs->rn++);
@@ -107,7 +107,7 @@ int cryptomsg_decrypt_body(struct crypto_state *cs, const u8 *in, size_t inlen, 
 		return 0;
 	}
 
-	assert(mlen == inlen - 16);
+	assert(mlen == cryptomsg_decrypt_size(inlen));
 
 	maybe_rotate_key(&cs->rn, &cs->rk, &cs->r_ck);
 
@@ -152,7 +152,7 @@ u8 *cryptomsg_encrypt_msg(struct crypto_state *cs, const u8 *msg, unsigned long 
 
 	*outlen = sizeof(l) + 16 + mlen + 16; 
 
-	if (outcap < *outlen) {
+	if (outcap < mlen) {
 		*outlen = 0;
 		return NULL;
 	}

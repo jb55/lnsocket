@@ -16,7 +16,7 @@ make
 Contributing
 ------------
 
-Send patches to me at jb55@jb55.com:
+Send patches to jb55@jb55.com:
 
 $ git config format.subjectPrefix 'PATCH lnsocket'
 $ git config sendemail.to 'William Casarin <jb55@jb55.com>'

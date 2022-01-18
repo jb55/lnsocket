@@ -3,6 +3,7 @@
 #define CCAN_ENDIAN_H
 #include <stdint.h>
 #include "config.h"
+#include "cursor.h"
 
 /**
  * BSWAP_16 - reverse bytes in a constant uint16_t value.
@@ -357,4 +358,18 @@ typedef beint16_t be16;
 typedef leint64_t le64;
 typedef leint32_t le32;
 typedef leint16_t le16;
+
+static inline int cursor_push_u16(struct cursor *cursor, u16 i)
+{
+	be16 v = cpu_to_be16(i);
+	return cursor_push(cursor, &v, sizeof(v));
+}
+
+static inline int cursor_push_u64(struct cursor *cur, u64 v)
+{
+	be64 l = cpu_to_be64(v);
+	return cursor_push(cur, (u8*)&l, sizeof(l));
+}
+
+
 #endif /* CCAN_ENDIAN_H */

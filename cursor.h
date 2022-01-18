@@ -224,7 +224,7 @@ static inline int cursor_pop(struct cursor *cur, u8 *data, int len)
 	return 1;
 }
 
-static inline int cursor_push(struct cursor *cursor, u8 *data, int len)
+static inline int cursor_push(struct cursor *cursor, const void *data, int len)
 {
 	if (unlikely(cursor->p + len >= cursor->end)) {
 		return 0;
@@ -301,11 +301,6 @@ static inline int pull_varint(struct cursor *cursor, int *n)
 static inline int cursor_pull_int(struct cursor *cursor, int *i)
 {
 	return cursor_pull(cursor, (u8*)i, sizeof(*i));
-}
-
-static inline int cursor_push_u16(struct cursor *cursor, u16 i)
-{
-	return cursor_push(cursor, (u8*)&i, sizeof(i));
 }
 
 static inline void *index_cursor(struct cursor *cursor, unsigned int index, int elem_size)

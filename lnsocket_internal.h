@@ -6,6 +6,7 @@
 struct lnsocket {
 	const char *errors[8];
 	struct cursor mem;
+	struct cursor msgbuf;
 	struct errors errs;
 	int num_errors;
 	int socket;

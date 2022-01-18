@@ -43,6 +43,13 @@ void hkdf_two_keys(struct secret *out1, struct secret *out2,
 			  const struct secret *in1,
 			  const struct secret *in2);
 
+int cryptomsg_decrypt_body(struct crypto_state *cs, const u8 *in, size_t inlen, u8 *out, size_t outcap);
+int cryptomsg_decrypt_header(struct crypto_state *cs, u8 hdr[18], u16 *lenp);
 unsigned char *cryptomsg_encrypt_msg(struct crypto_state *cs, const u8 *msg, unsigned long long mlen, u8 *out, size_t *outlen, size_t outcap);
+
+static inline int cryptomsg_decrypt_size(size_t inlen)
+{
+	return inlen - 16;
+}
 
 #endif /* LNSOCKET_CRYPTO_H */
