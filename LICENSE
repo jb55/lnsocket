@@ -1,5 +1,8 @@
 Copyright 2022 William Casarin. MIT license
 
+This license applies to everywhere in the codebase, but files with licenses at
+the top of the file override this for those files.
+
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
 the Software without restriction, including without limitation the rights to
