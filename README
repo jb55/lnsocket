@@ -20,6 +20,12 @@ Building
 make
 
 
+Examples
+--------
+
+See test.c for now. More soon.
+
+
 Contributing
 ------------
 
