@@ -7,6 +7,13 @@ A simple C library for sending messages over the lightning network
 Work in progress!
 
 
+Depedencies
+-----------
+
+You'll need libtool/autoconf/automake for the libsodium/secp256k1 submodules,
+but otherwise there are no dependencies
+
+
 Building
 --------
 
