@@ -6,6 +6,20 @@ A simple C library for sending messages over the lightning network
 
 Work in progress!
 
+Thanks to Rusty and the clightning project for much of this code, I have
+adapted it to be more library friendly. I've removed references to tal, Rusty's
+hierarchical allocator. The library only allocates once and uses that chunk of
+memory for all operations.
+
+
+Motivation
+----------
+
+I wanted a way to send custom messages to my lightning node, such as RPC.
+Building this as a simple C library will allow you to speak the lightning
+network in native applications, like on mobile. I have not tested this on iOS
+yet but that is planned and is the motivating use case.
+
 
 Dependencies
 ------------
