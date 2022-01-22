@@ -27,7 +27,7 @@
 
 #define array_len(x) (sizeof(x)/sizeof(x[0]))
 
-#define MSGBUF_MEM 65536
+#define MSGBUF_MEM (65536*2)
 #define ERROR_MEM 4096
 
 int push_error(struct lnsocket *lnsocket, const char *err);
@@ -200,7 +200,11 @@ int lnsocket_read(struct lnsocket *ln, unsigned char **buf, unsigned short *len)
 		return note_error(&ln->errs, "out of memory");
 
 	if (!cursor_slice(&ln->msgbuf, &dec, size))
-		return note_error(&ln->errs, "out of memory");
+		return note_error(&ln->errs, "out of memory: %d + %d = %d > %d",
+				ln->msgbuf.end - ln->msgbuf.p, size,
+				ln->msgbuf.end - ln->msgbuf.p + size,
+				MSGBUF_MEM
+				);
 
 	if (!read_all(ln->socket, enc.p, enc.end - enc.start))
 		return note_error(&ln->errs, "Failed reading body: %s",

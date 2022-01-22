@@ -13,7 +13,7 @@ struct errors {
 	int enabled;
 };
 
-#define note_error(errs, fmt, ...) note_error_(errs, "%s: " fmt, __FUNCTION__, ##__VA_ARGS__)
+#define note_error(errs, fmt, ...) note_error_(errs, "%s:%s:%d: " fmt, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
 
 static inline int cursor_push_error(struct cursor *cur, struct error *err)
 {
