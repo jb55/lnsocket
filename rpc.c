@@ -22,7 +22,7 @@ int main(int argc, const char *argv[])
 	u8 *buf;
 	struct lnsocket *ln;
 	fd_set set;
-	struct timeval timeout;
+	struct timeval timeout = {0};
 
 	char *timeout_str;
 	u16 len, msgtype;
