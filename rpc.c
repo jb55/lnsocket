@@ -12,7 +12,7 @@
 int usage()
 {
 	printf("lnrpc <nodeid> <ip/hostname> <method> <params> <rune>\n\n");
-	printf("currently supports commando for clightning, but potentially more rpc types in the future!");
+	printf("currently supports commando for clightning, but potentially more rpc types in the future!\n");
 	return 0;
 }
 

@@ -37,8 +37,9 @@ make
 Examples
 --------
 
-See test.c for now. More soon.
+* See test.c for a ping/pong example
 
+* See rpc.c for an RPC example
 
 Contributing
 ------------
