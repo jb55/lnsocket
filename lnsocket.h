@@ -63,7 +63,7 @@ struct lnsocket *lnsocket_create();
 /* messages */
 
 int lnsocket_make_network_tlv(unsigned char *buf, int buflen, const unsigned char **blockids, int num_blockids, struct tlv *tlv_out);
-int lnsocket_make_ping_msg(unsigned char *buf, int buflen, unsigned short num_pong_bytes, unsigned short ignored_bytes, int *outlen);
+int lnsocket_make_ping_msg(unsigned char *buf, int buflen, unsigned short num_pong_bytes, unsigned short ignored_bytes, unsigned short *outlen);
 int lnsocket_make_init_msg(unsigned char *buf, int buflen, const unsigned char *globalfeatures, unsigned short gflen, const unsigned char *features, unsigned short flen, const struct tlv **tlvs, unsigned short num_tlvs, unsigned short *outlen);
 
 int lnsocket_perform_init(struct lnsocket *ln);

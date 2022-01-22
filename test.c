@@ -21,7 +21,7 @@ int main(int argc, const char *argv[])
 	u8 *buf;
 	struct lnsocket *ln;
 
-	int len;
+	u16 len;
 	int ok = 1;
 
 	ln = lnsocket_create();

@@ -294,7 +294,7 @@ int lnsocket_make_network_tlv(unsigned char *buf, int buflen,
 	return 1;
 }
 
-int lnsocket_make_ping_msg(unsigned char *buf, int buflen, u16 num_pong_bytes, u16 ignored_bytes, int *outlen)
+int lnsocket_make_ping_msg(unsigned char *buf, int buflen, u16 num_pong_bytes, u16 ignored_bytes, u16 *outlen)
 {
 	struct cursor msg;
 	int i;
