@@ -100,6 +100,45 @@ static int read_all(int fd, void *data, size_t size)
 	return 1;
 }
 
+int lnsocket_perform_init(struct lnsocket *ln)
+{
+	u8 tlvbuf[1024];
+	u8 msgbuf[1024];
+	u8 global_features[2] = {0};
+	u8 features[5] = {0};
+	struct tlv network_tlv;
+	int len;
+	u8 *buf;
+
+	if (!lnsocket_read(ln, &buf, &len))
+		return 0;
+
+	const u8 genesis_block[]  = {
+	  0x6f, 0xe2, 0x8c, 0x0a, 0xb6, 0xf1, 0xb3, 0x72, 0xc1, 0xa6, 0xa2, 0x46,
+	  0xae, 0x63, 0xf7, 0x4f, 0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c,
+	  0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00
+	};
+
+	const u8 *blockids[] = { genesis_block };
+
+	if (!lnsocket_make_network_tlv(tlvbuf, sizeof(tlvbuf), blockids, 1,
+				&network_tlv))
+		return 0;
+
+	const struct tlv *init_tlvs[] = { &network_tlv } ;
+
+	if (!lnsocket_make_init_msg(msgbuf, sizeof(msgbuf),
+			global_features, sizeof(global_features),
+			features, sizeof(features),
+			init_tlvs, 1,
+			&len))
+		return 0;
+
+	if (!lnsocket_write(ln, msgbuf, len))
+		return 0;
+
+	return 1;
+}
 
 int lnsocket_read(struct lnsocket *ln, unsigned char **buf, int *len)
 {
