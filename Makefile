@@ -8,7 +8,7 @@ ARS=deps/secp256k1/.libs/libsecp256k1.a deps/libsodium/src/libsodium/.libs/libso
 OBJS=sha256.o hkdf.o hmac.o sha512.o lnsocket.o error.o handshake.o crypto.o bigsize.o
 DEPS=$(OBJS) config.h
 
-all: test
+all: test lnrpc
 
 deps/libsodium/.git:
 	@tools/refresh-submodules.sh $(SUBMODULES)
@@ -62,7 +62,7 @@ tags: fake
 	find . -name '*.c' -or -name '*.h' | xargs ctags
 
 clean: fake
-	rm -f test lnsocket $(DEPS) 
+	rm -f test lnrpc $(DEPS) 
 
 deepclean: clean
 	rm -f $(ARS) deps/secp256k1/src/libsecp256k1-config.h
