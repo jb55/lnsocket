@@ -1,4 +1,5 @@
 .build-result
+/lnrpc
 .buildcmd
 /.direnv
 /tags

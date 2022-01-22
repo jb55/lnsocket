@@ -107,7 +107,7 @@ int lnsocket_perform_init(struct lnsocket *ln)
 	u8 global_features[2] = {0};
 	u8 features[5] = {0};
 	struct tlv network_tlv;
-	int len;
+	u16 len;
 	u8 *buf;
 
 	if (!lnsocket_read(ln, &buf, &len))
@@ -140,7 +140,45 @@ int lnsocket_perform_init(struct lnsocket *ln)
 	return 1;
 }
 
-int lnsocket_read(struct lnsocket *ln, unsigned char **buf, int *len)
+// simple helper that pushes a message type and payload
+int lnsocket_send(struct lnsocket *ln, unsigned short msg_type, const unsigned char *payload, unsigned short payload_len)
+{
+	reset_cursor(&ln->msgbuf);
+
+	if (!cursor_push_u16(&ln->msgbuf, msg_type))
+		return note_error(&ln->errs, "could not write type to msgbuf?");
+
+	if (!cursor_push(&ln->msgbuf, payload, payload_len))
+		return note_error(&ln->errs, "payload too big");
+
+	return lnsocket_write(ln, ln->msgbuf.start, ln->msgbuf.p - ln->msgbuf.start);
+}
+
+// simple helper that receives a message type and payload
+int lnsocket_recv(struct lnsocket *ln, u16 *msg_type, unsigned char **payload, u16 *payload_len)
+{
+	struct cursor cur;
+	u8 *msg;
+	u16 msglen;
+
+	if (!lnsocket_read(ln, &msg, &msglen))
+		return 0;
+
+	make_cursor(msg, msg + msglen, &cur);
+
+	if (!cursor_pull_u16(&cur, msg_type))
+		return note_error(&ln->errs, "could not read msgtype");
+
+	*payload_len = msglen - 2;
+	*payload = cur.p;
+
+	if (*payload + *payload_len > cur.end)
+		return note_error(&ln->errs, "recv buffer overflow?");
+
+	return 1;
+}
+
+int lnsocket_read(struct lnsocket *ln, unsigned char **buf, unsigned short *len)
 {
 	struct cursor enc, dec;
 	u8 hdr[18];
@@ -280,7 +318,7 @@ int lnsocket_make_init_msg(unsigned char *buf, int buflen,
 	const unsigned char *features, u16 flen,
 	const struct tlv **tlvs,
 	unsigned short num_tlvs,
-	int *outlen)
+	unsigned short *outlen)
 {
 	struct cursor msg;
 
@@ -309,7 +347,7 @@ int lnsocket_make_init_msg(unsigned char *buf, int buflen,
 	return 1;
 }
 
-int lnsocket_write(struct lnsocket *ln, const u8 *msg, int msglen)
+int lnsocket_write(struct lnsocket *ln, const u8 *msg, unsigned short msglen)
 {
 	ssize_t writelen, outcap;
 	size_t outlen;

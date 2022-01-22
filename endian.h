@@ -365,6 +365,15 @@ static inline int cursor_push_u16(struct cursor *cursor, u16 i)
 	return cursor_push(cursor, &v, sizeof(v));
 }
 
+static inline int cursor_pull_u16(struct cursor *cursor, u16 *i)
+{
+	be16 ret;
+	if (!cursor_pull(cursor, (u8*)&ret, sizeof(ret)))
+		return 0;
+	*i = be16_to_cpu(ret);
+	return 1;
+}
+
 static inline int cursor_push_u64(struct cursor *cur, u64 v)
 {
 	be64 l = cpu_to_be64(v);

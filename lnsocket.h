@@ -64,13 +64,18 @@ struct lnsocket *lnsocket_create();
 
 int lnsocket_make_network_tlv(unsigned char *buf, int buflen, const unsigned char **blockids, int num_blockids, struct tlv *tlv_out);
 int lnsocket_make_ping_msg(unsigned char *buf, int buflen, unsigned short num_pong_bytes, unsigned short ignored_bytes, int *outlen);
-int lnsocket_make_init_msg(unsigned char *buf, int buflen, const unsigned char *globalfeatures, unsigned short gflen, const unsigned char *features, unsigned short flen, const struct tlv **tlvs, unsigned short num_tlvs, int *outlen);
+int lnsocket_make_init_msg(unsigned char *buf, int buflen, const unsigned char *globalfeatures, unsigned short gflen, const unsigned char *features, unsigned short flen, const struct tlv **tlvs, unsigned short num_tlvs, unsigned short *outlen);
 
 int lnsocket_perform_init(struct lnsocket *ln);
 
 int lnsocket_connect(struct lnsocket *, const char *node_id, const char *host);
-int lnsocket_write(struct lnsocket *, const unsigned char *msg, int msg_len);
-int lnsocket_read(struct lnsocket *, unsigned char **buf, int *len);
+
+int lnsocket_write(struct lnsocket *, const unsigned char *msg, unsigned short msg_len);
+int lnsocket_read(struct lnsocket *, unsigned char **buf, unsigned short *len);
+
+int lnsocket_send(struct lnsocket *, unsigned short msg_type, const unsigned char *payload, unsigned short payload_len);
+int lnsocket_recv(struct lnsocket *, unsigned short *msg_type, unsigned char **payload, unsigned short *payload_len);
+
 void lnsocket_genkey(struct lnsocket *);
 void lnsocket_destroy(struct lnsocket *);
 void lnsocket_print_errors(struct lnsocket *);

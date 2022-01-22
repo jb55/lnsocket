@@ -54,6 +54,10 @@ test: test.o $(DEPS) $(ARS)
 	@echo "ld test"
 	@$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
 
+lnrpc: rpc.o commando.o $(DEPS) $(ARS)
+	@echo "ld lnrpc"
+	@$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
+
 tags: fake
 	find . -name '*.c' -or -name '*.h' | xargs ctags
 
