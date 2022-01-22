@@ -57,10 +57,26 @@ int main(int argc, const char *argv[])
 	if (verbose)
 		fprintf(stderr, "waiting for response...\n");
 
-	if (!(ok = lnsocket_recv(ln, &msgtype, &buf, &len)))
-		goto done;
+	while (1) {
+		if (!(ok = lnsocket_recv(ln, &msgtype, &buf, &len)))
+			goto done;
 
-	printf("%.*s\n", len - 8, buf + 8);
+		printf("%.*s", len - 8, buf + 8);
+
+		switch (msgtype) {
+		case COMMANDO_REPLY_TERM:
+			printf("\n");
+			goto done;
+		case COMMANDO_REPLY_CONTINUES:
+			continue;
+		default:
+			printf("\n");
+			fprintf(stderr, "unknown msgtype %d\n", msgtype);
+			ok = 0;
+			goto done;
+		}
+	}
+
 done:
 	lnsocket_print_errors(ln);
 	lnsocket_destroy(ln);

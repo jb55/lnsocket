@@ -41,9 +41,9 @@ void print_error_backtrace(struct errors *errors)
 
 	while (errs.p < errors->cur.p) {
 		if (!cursor_pull_error(&errs, &err)) {
-			printf("backtrace: couldn't pull error\n");
+			fprintf(stderr, "backtrace: couldn't pull error\n");
 			return;
 		}
-		printf("%s\n", err.msg);
+		fprintf(stderr, "%s\n", err.msg);
 	}
 }
