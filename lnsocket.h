@@ -70,6 +70,7 @@ int lnsocket_perform_init(struct lnsocket *ln);
 
 int lnsocket_connect(struct lnsocket *, const char *node_id, const char *host);
 
+int lnsocket_fd(struct lnsocket *, int *fd);
 int lnsocket_write(struct lnsocket *, const unsigned char *msg, unsigned short msg_len);
 int lnsocket_read(struct lnsocket *, unsigned char **buf, unsigned short *len);
 

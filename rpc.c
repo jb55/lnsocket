@@ -21,10 +21,22 @@ int main(int argc, const char *argv[])
 	static u8 msgbuf[4096];
 	u8 *buf;
 	struct lnsocket *ln;
+	fd_set set;
+	struct timeval timeout;
+
+	char *timeout_str;
 	u16 len, msgtype;
 	int ok = 1;
+	int socket, rv;
 	int verbose = getenv("VERBOSE") != 0;
 	//int verbose = 1;
+
+	timeout_str = getenv("LNRPC_TIMEOUT");
+	int timeout_ms = timeout_str ? atoi(timeout_str) : 5000;
+
+	timeout.tv_usec = 1000 * timeout_ms;
+
+	FD_ZERO(&set); /* clear the set */
 
 	if (argc < 5)
 		return usage();
@@ -43,6 +55,11 @@ int main(int argc, const char *argv[])
 	if (!(ok = lnsocket_connect(ln, nodeid, host)))
 		goto done;
 
+	if (!(ok = lnsocket_fd(ln, &socket)))
+		goto done;
+
+	FD_SET(socket, &set); /* add our file descriptor to the set */
+
 	if (!(ok = lnsocket_perform_init(ln)))
 		goto done;
 
@@ -59,6 +76,18 @@ int main(int argc, const char *argv[])
 		fprintf(stderr, "waiting for response...\n");
 
 	while (1) {
+		rv = select(socket + 1, &set, NULL, NULL, &timeout);
+
+		if (rv == -1) {
+			perror("select");
+			ok = 0;
+			goto done;
+		} else if (rv == 0) {
+			fprintf(stderr, "error: rpc request timeout\n");
+			ok = 0;
+			goto done;
+		}
+
 		if (!(ok = lnsocket_recv(ln, &msgtype, &buf, &len)))
 			goto done;
 

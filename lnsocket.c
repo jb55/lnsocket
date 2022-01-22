@@ -474,6 +474,12 @@ int lnsocket_connect(struct lnsocket *ln, const char *node_id, const char *host)
 	return act_one_initiator(ln, &h);
 }
 
+int lnsocket_fd(struct lnsocket *ln, int *fd)
+{
+	*fd = ln->socket;
+	return 1;
+}
+
 void lnsocket_genkey(struct lnsocket *ln)
 {
 	ln->key = generate_key(ln->secp);
