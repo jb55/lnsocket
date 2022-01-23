@@ -6,7 +6,7 @@ SUBMODULES=deps/libsodium deps/secp256k1
 
 ARS=deps/secp256k1/.libs/libsecp256k1.a deps/libsodium/src/libsodium/.libs/libsodium.a
 OBJS=sha256.o hkdf.o hmac.o sha512.o lnsocket.o error.o handshake.o crypto.o bigsize.o
-DEPS=$(OBJS) config.h
+DEPS=$(OBJS) $(ARS) config.h
 
 all: test lnrpc
 
@@ -50,19 +50,19 @@ deps/libsodium/src/libsodium/.libs/libsodium.a: deps/libsodium/config.status
 	cd deps/libsodium/src/libsodium; \
 	make -j2 libsodium.la
 
-test: test.o $(DEPS) $(ARS)
+test: test.o $(DEPS)
 	@echo "ld test"
-	@$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
+	@$(CC) $(CFLAGS) test.o $(OBJS) $(ARS) $(LDFLAGS) -o $@
 
-lnrpc: rpc.o commando.o $(DEPS) $(ARS)
+lnrpc: rpc.o commando.o $(DEPS)
 	@echo "ld lnrpc"
-	@$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
+	@$(CC) $(CFLAGS) rpc.o commando.o $(OBJS) $(ARS) $(LDFLAGS) -o $@
 
 tags: fake
 	find . -name '*.c' -or -name '*.h' | xargs ctags
 
 clean: fake
-	rm -f test lnrpc $(DEPS) 
+	rm -f test lnrpc config.h $(OBJS)
 
 deepclean: clean
 	rm -f $(ARS) deps/secp256k1/src/libsecp256k1-config.h

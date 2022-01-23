@@ -4,6 +4,8 @@
 /.direnv
 /tags
 *.o
+/config.h
+/configurator.out.dSYM
 /configurator
 /test
 TODO.bak

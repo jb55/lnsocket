@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include <sys/select.h>
+
 int usage()
 {
 	printf("lnrpc <nodeid> <ip/hostname> <method> <rune> [params (json string)]\n\n");
