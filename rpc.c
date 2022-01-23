@@ -36,7 +36,8 @@ int main(int argc, const char *argv[])
 	timeout_str = getenv("LNRPC_TIMEOUT");
 	int timeout_ms = timeout_str ? atoi(timeout_str) : 5000;
 
-	timeout.tv_usec = 1000 * timeout_ms;
+	timeout.tv_sec = timeout_ms / 1000;
+	timeout.tv_usec = (timeout_ms % 1000) * 1000;
 
 	FD_ZERO(&set); /* clear the set */
 
