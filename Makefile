@@ -32,7 +32,7 @@ deps/secp256k1/src/libsecp256k1-config.h: deps/secp256k1/configure
 
 deps/libsodium/config.status: deps/libsodium/configure
 	cd deps/libsodium; \
-	./configure
+	./configure --enable-minimal
 
 deps/secp256k1/configure: deps/secp256k1/.git
 	cd deps/secp256k1; \
@@ -64,7 +64,7 @@ tags: fake
 clean: fake
 	rm -f test lnrpc config.h $(OBJS)
 
-deepclean: clean
+distclean: clean
 	rm -f $(ARS) deps/secp256k1/src/libsecp256k1-config.h
 	cd deps/secp256k1; \
 	make clean

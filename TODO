@@ -3,4 +3,4 @@ static lib
 dynamic lib
 automatic towire/fromwire serialization
 better helpers for building tlvs
-(A) getinfo request
+(A) ios build
