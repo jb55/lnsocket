@@ -2,6 +2,7 @@
 #ifndef CCAN_ENDIAN_H
 #define CCAN_ENDIAN_H
 #include <stdint.h>
+
 #include "config.h"
 #include "cursor.h"
 

@@ -4,11 +4,22 @@ LDFLAGS=
 
 SUBMODULES=deps/libsodium deps/secp256k1
 
-ARS=deps/secp256k1/.libs/libsecp256k1.a deps/libsodium/src/libsodium/.libs/libsodium.a
+# Build for the simulator
+XCODEDIR=$(shell xcode-select -p)
+SIM_SDK=$(XCODEDIR)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk
+IOS_SDK=$(XCODEDIR)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk
+
+ARS=libsecp256k1.a libsodium.a
 OBJS=sha256.o hkdf.o hmac.o sha512.o lnsocket.o error.o handshake.o crypto.o bigsize.o
+ARM64_OBJS=$(OBJS:.o=-arm64.o)
+X86_64_OBJS=$(OBJS:.o=-x86_64.o)
+BINS=test lnrpc
+
 DEPS=$(OBJS) $(ARS) config.h
 
-all: test lnrpc
+all: $(BINS) lnsocket.a
+
+ios: target/universal/lnsocket.a target/universal/libsodium.a
 
 deps/libsodium/.git:
 	@tools/refresh-submodules.sh $(SUBMODULES)
@@ -16,14 +27,38 @@ deps/libsodium/.git:
 deps/secp256k1/.git:
 	@tools/refresh-submodules.sh $(SUBMODULES)
 
+lnsocket.a: $(OBJS)
+	ar rcs $@ $(OBJS)
+
+target/arm64/lnsocket.a: $(ARM64_OBJS)
+	@mkdir -p target/arm64
+	ar rcs $@ $^
+
+target/x86_64/lnsocket.a: $(X86_64_OBJS)
+	@mkdir -p target/x86_64
+	ar rcs $@ $^
+
+target/universal/lnsocket.a: target/x86_64/lnsocket.a target/arm64/lnsocket.a
+	@mkdir -p target/universal
+	lipo -create $^ -output $@
+
+%-arm64.o: %.c config.h
+	@echo "cc $@"
+	@$(CC) $(CFLAGS) -DARCH=arm64 -c $< -o $@ -arch arm64 -isysroot $(IOS_SDK) -target arm64-apple-ios -fembed-bitcode
+
+%-x86_64.o: %.c config.h
+	@echo "cc $@"
+	@$(CC) $(CFLAGS) -DARCH=x86_64 -c $< -o $@ -arch x86_64 -isysroot $(SIM_SDK) -mios-simulator-version-min=6.0.0 -target x86_64-apple-ios-simulator
+
+# TODO cross compilation settings??
 config.h: configurator
 	./configurator > $@
 
 configurator: configurator.c
 	$(CC) $< -o $@
 
-%.o: %.c config.h $(ARS)
-	@echo "cc $<"
+%.o: %.c config.h
+	@echo "cc $@"
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 deps/secp256k1/src/libsecp256k1-config.h: deps/secp256k1/configure
@@ -46,15 +81,28 @@ deps/secp256k1/.libs/libsecp256k1.a: deps/secp256k1/src/libsecp256k1-config.h
 	cd deps/secp256k1; \
 	make -j2 libsecp256k1.la
 
+libsecp256k1.a: deps/secp256k1/.libs/libsecp256k1.a
+	cp $< $@
+
+libsodium.a: deps/libsodium/src/libsodium/.libs/libsodium.a
+	cp $< $@
+
+target/universal/libsodium.a: deps/libsodium/libsodium-ios/lib/libsodium.a
+	cp $< $@
+
+deps/libsodium/libsodium-ios/lib/libsodium.a:
+	cd deps/libsodium; \
+	./dist-build/ios.sh
+
 deps/libsodium/src/libsodium/.libs/libsodium.a: deps/libsodium/config.status
 	cd deps/libsodium/src/libsodium; \
 	make -j2 libsodium.la
 
-test: test.o $(DEPS)
+test: test.o $(DEPS) $(ARS)
 	@echo "ld test"
 	@$(CC) $(CFLAGS) test.o $(OBJS) $(ARS) $(LDFLAGS) -o $@
 
-lnrpc: rpc.o commando.o $(DEPS)
+lnrpc: rpc.o commando.o $(DEPS) $(ARS)
 	@echo "ld lnrpc"
 	@$(CC) $(CFLAGS) rpc.o commando.o $(OBJS) $(ARS) $(LDFLAGS) -o $@
 
@@ -62,14 +110,14 @@ tags: fake
 	find . -name '*.c' -or -name '*.h' | xargs ctags
 
 clean: fake
-	rm -f test lnrpc config.h $(OBJS)
+	rm -rf $(BINS) config.h $(OBJS) $(ARM64_OBJS) $(X86_64_OBJS) target
 
 distclean: clean
-	rm -f $(ARS) deps/secp256k1/src/libsecp256k1-config.h
+	rm -rf $(ARS) deps/secp256k1/src/libsecp256k1-config.h deps/libsodium/libsodium-ios
 	cd deps/secp256k1; \
-	make clean
+	make distclean
 	cd deps/libsodium; \
-	make clean
+	make distclean
 
 
 .PHONY: fake
