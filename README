@@ -31,7 +31,16 @@ but otherwise there are no dependencies
 Building
 --------
 
-make
+$ make
+
+
+iOS
+---
+
+$ make ios
+
+This will build lnsocket.a, libsodium.a and libsecp256k1.a under target/ios for
+arm64 and ios-sim.
 
 
 Examples
