@@ -10,7 +10,7 @@ SIM_SDK=$(XCODEDIR)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimu
 IOS_SDK=$(XCODEDIR)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk
 
 ARS=libsecp256k1.a libsodium.a
-OBJS=sha256.o hkdf.o hmac.o sha512.o lnsocket.o error.o handshake.o crypto.o bigsize.o
+OBJS=sha256.o hkdf.o hmac.o sha512.o lnsocket.o error.o handshake.o crypto.o bigsize.o commando.o
 ARM64_OBJS=$(OBJS:.o=-arm64.o)
 X86_64_OBJS=$(OBJS:.o=-x86_64.o)
 BINS=test lnrpc
@@ -108,9 +108,9 @@ test: test.o $(DEPS) $(ARS)
 	@echo "ld test"
 	@$(CC) $(CFLAGS) test.o $(OBJS) $(ARS) $(LDFLAGS) -o $@
 
-lnrpc: rpc.o commando.o $(DEPS) $(ARS)
+lnrpc: rpc.o $(DEPS) $(ARS)
 	@echo "ld lnrpc"
-	@$(CC) $(CFLAGS) rpc.o commando.o $(OBJS) $(ARS) $(LDFLAGS) -o $@
+	@$(CC) $(CFLAGS) rpc.o $(OBJS) $(ARS) $(LDFLAGS) -o $@
 
 tags: fake
 	find . -name '*.c' -or -name '*.h' | xargs ctags
