@@ -19,7 +19,7 @@ DEPS=$(OBJS) $(ARS) config.h
 
 all: $(BINS) lnsocket.a
 
-ios: target/universal/lnsocket.a target/universal/libsodium.a
+ios: target/ios/lnsocket.a target/ios/libsodium.a target/ios/libsecp256k1.a
 
 deps/libsodium/.git:
 	@tools/refresh-submodules.sh $(SUBMODULES)
@@ -38,19 +38,19 @@ target/x86_64/lnsocket.a: $(X86_64_OBJS)
 	@mkdir -p target/x86_64
 	ar rcs $@ $^
 
-target/universal/lnsocket.a: target/x86_64/lnsocket.a target/arm64/lnsocket.a
-	@mkdir -p target/universal
+target/ios/lnsocket.a: target/x86_64/lnsocket.a target/arm64/lnsocket.a
+	@mkdir -p target/ios
 	lipo -create $^ -output $@
 
 %-arm64.o: %.c config.h
 	@echo "cc $@"
-	@$(CC) $(CFLAGS) -DARCH=arm64 -c $< -o $@ -arch arm64 -isysroot $(IOS_SDK) -target arm64-apple-ios -fembed-bitcode
+	@$(CC) $(CFLAGS) -c $< -o $@ -arch arm64 -isysroot $(IOS_SDK) -target arm64-apple-ios -fembed-bitcode
 
 %-x86_64.o: %.c config.h
 	@echo "cc $@"
-	@$(CC) $(CFLAGS) -DARCH=x86_64 -c $< -o $@ -arch x86_64 -isysroot $(SIM_SDK) -mios-simulator-version-min=6.0.0 -target x86_64-apple-ios-simulator
+	@$(CC) $(CFLAGS) -c $< -o $@ -arch x86_64 -isysroot $(SIM_SDK) -mios-simulator-version-min=6.0.0 -target x86_64-apple-ios-simulator
 
-# TODO cross compilation settings??
+# TODO cross compiled config??
 config.h: configurator
 	./configurator > $@
 
@@ -63,11 +63,11 @@ configurator: configurator.c
 
 deps/secp256k1/src/libsecp256k1-config.h: deps/secp256k1/configure
 	cd deps/secp256k1; \
-	./configure --enable-module-ecdh
+	./configure --disable-shared --enable-module-ecdh
 
 deps/libsodium/config.status: deps/libsodium/configure
 	cd deps/libsodium; \
-	./configure --enable-minimal
+	./configure --disable-shared --enable-minimal
 
 deps/secp256k1/configure: deps/secp256k1/.git
 	cd deps/secp256k1; \
@@ -87,12 +87,18 @@ libsecp256k1.a: deps/secp256k1/.libs/libsecp256k1.a
 libsodium.a: deps/libsodium/src/libsodium/.libs/libsodium.a
 	cp $< $@
 
-target/universal/libsodium.a: deps/libsodium/libsodium-ios/lib/libsodium.a
+target/ios/libsodium.a: deps/libsodium/libsodium-ios/lib/libsodium.a
+	cp $< $@
+
+target/ios/libsecp256k1.a: deps/secp256k1/libsecp256k1-ios/lib/libsecp256k1.a
 	cp $< $@
 
 deps/libsodium/libsodium-ios/lib/libsodium.a:
 	cd deps/libsodium; \
 	./dist-build/ios.sh
+
+deps/secp256k1/libsecp256k1-ios/lib/libsecp256k1.a:
+	./tools/secp-ios.sh
 
 deps/libsodium/src/libsodium/.libs/libsodium.a: deps/libsodium/config.status
 	cd deps/libsodium/src/libsodium; \
@@ -113,7 +119,7 @@ clean: fake
 	rm -rf $(BINS) config.h $(OBJS) $(ARM64_OBJS) $(X86_64_OBJS) target
 
 distclean: clean
-	rm -rf $(ARS) deps/secp256k1/src/libsecp256k1-config.h deps/libsodium/libsodium-ios
+	rm -rf $(ARS) deps/secp256k1/src/libsecp256k1-config.h deps/libsodium/libsodium-ios deps/secp256k1/libsecp256k1-ios
 	cd deps/secp256k1; \
 	make distclean
 	cd deps/libsodium; \
