@@ -17,8 +17,7 @@ Motivation
 
 I wanted a way to send custom messages to my lightning node, such as RPC.
 Building this as a simple C library will allow you to speak the lightning
-network in native applications, like on mobile. I have not tested this on iOS
-yet but that is planned and is the motivating use case.
+network in native applications, like on mobile.
 
 
 Dependencies
