@@ -4,12 +4,8 @@ lnsocket
 
 A simple C library for sending messages over the lightning network
 
-Work in progress!
-
 Thanks to Rusty and the clightning project for much of this code, I have
-adapted it to be more library friendly. I've removed references to tal, Rusty's
-hierarchical allocator. The library only allocates once and uses that chunk of
-memory for all operations.
+adapted it to be more library friendly.
 
 
 Motivation
