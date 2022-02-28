@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include <secp256k1.h>
 #include <secp256k1_ecdh.h>
@@ -29,6 +30,7 @@
 
 #define MSGBUF_MEM (65536*2)
 #define ERROR_MEM 4096
+#define DEFAULT_TIMEOUT 3000
 
 int push_error(struct lnsocket *lnsocket, const char *err);
 
@@ -433,13 +435,35 @@ static int is_zero(void *vp, int size)
 	return 1;
 }
 
-int lnsocket_connect(struct lnsocket *ln, const char *node_id, const char *host)
+static int io_fd_block(int fd, int block)
+{
+	int flags = fcntl(fd, F_GETFL);
+
+	if (flags == -1)
+		return 0;
+
+	if (block)
+		flags &= ~O_NONBLOCK;
+	else
+		flags |= O_NONBLOCK;
+
+	return fcntl(fd, F_SETFL, flags) != -1;
+}
+
+int lnsocket_connect_with(struct lnsocket *ln, const char *node_id, const char *host, int timeout_ms)
 {
 	int ret;
 	struct addrinfo *addrs = NULL;
 	struct handshake h;
 	struct pubkey their_id;
 	struct node_id their_node_id;
+	struct timeval timeout = {0};
+	fd_set set;
+
+	timeout.tv_sec = timeout_ms / 1000;
+	timeout.tv_usec = (timeout_ms % 1000) * 1000;
+
+	FD_ZERO(&set); /* clear the set */
 
 	if (is_zero(&ln->key, sizeof(ln->key)))
 		return note_error(&ln->errs, "key not initialized, use lnsocket_set_key() or lnsocket_genkey()");
@@ -460,9 +484,23 @@ int lnsocket_connect(struct lnsocket *ln, const char *node_id, const char *host)
 	if (!(ln->socket = socket(AF_INET, SOCK_STREAM, 0)))
 		return note_error(&ln->errs, "creating socket failed");
 
+	FD_SET(ln->socket, &set); /* add our file descriptor to the set */
+
+	if (!io_fd_block(ln->socket, 0))
+		return note_error(&ln->errs, "failed setting socket to non-blocking");
+
 	// connect to the node!
-	if (connect(ln->socket, addrs->ai_addr, addrs->ai_addrlen) == -1)
-		return note_error(&ln->errs, "%s", strerror(errno));
+	connect(ln->socket, addrs->ai_addr, addrs->ai_addrlen);
+
+	ret = select(ln->socket + 1, &set, NULL, NULL, &timeout);
+	if (ret == -1) {
+		return note_error(&ln->errs, "select error");
+	} else if (ret == 0) {
+		return note_error(&ln->errs, "connection timeout");
+	}
+
+	if (!io_fd_block(ln->socket, 1))
+		return note_error(&ln->errs, "failed setting socket to blocking");
 
 	// prepare some data for ACT1
 	new_handshake(ln->secp, &h, &their_id);
@@ -472,6 +510,11 @@ int lnsocket_connect(struct lnsocket *ln, const char *node_id, const char *host)
 
 	// let's do this!
 	return act_one_initiator(ln, &h);
+}
+
+int lnsocket_connect(struct lnsocket *ln, const char *node_id, const char *host)
+{
+	return lnsocket_connect_with(ln, node_id, host, DEFAULT_TIMEOUT);
 }
 
 int lnsocket_fd(struct lnsocket *ln, int *fd)
