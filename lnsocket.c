@@ -492,15 +492,15 @@ int lnsocket_connect_with(struct lnsocket *ln, const char *node_id, const char *
 	// connect to the node!
 	connect(ln->socket, addrs->ai_addr, addrs->ai_addrlen);
 
-	ret = select(ln->socket + 1, &set, NULL, NULL, &timeout);
+	if (!io_fd_block(ln->socket, 1))
+		return note_error(&ln->errs, "failed setting socket to blocking");
+
+	ret = select(ln->socket + 1, NULL, &set, NULL, &timeout);
 	if (ret == -1) {
 		return note_error(&ln->errs, "select error");
 	} else if (ret == 0) {
 		return note_error(&ln->errs, "connection timeout");
 	}
-
-	if (!io_fd_block(ln->socket, 1))
-		return note_error(&ln->errs, "failed setting socket to blocking");
 
 	// prepare some data for ACT1
 	new_handshake(ln->secp, &h, &their_id);
