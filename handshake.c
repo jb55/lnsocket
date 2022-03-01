@@ -400,8 +400,7 @@ int act_one_initiator(struct lnsocket *ln, struct handshake *h)
 	if (!secp256k1_ecdh(ln->secp, h->ss.data,
 			    &h->their_id.pubkey, h->e.priv.secret.data,
 			    NULL, NULL)) {
-		note_error(&ln->errs, "handshake failed, secp256k1_ecdh error");
-		return 0;
+		return note_error(&ln->errs, "handshake failed, secp256k1_ecdh error");
 	}
 
 	/* BOLT #8:
@@ -439,8 +438,7 @@ int act_one_initiator(struct lnsocket *ln, struct handshake *h)
 	check_act_one(&h->act1);
 
 	if (write(ln->socket, &h->act1, ACT_ONE_SIZE) != ACT_ONE_SIZE) {
-		note_error(&ln->errs, "handshake failed on initial send");
-		return 0;
+		return note_error(&ln->errs, "handshake failed on initial send");
 	}
 
 	return act_two_initiator(ln, h);
