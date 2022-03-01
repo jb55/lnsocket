@@ -450,6 +450,23 @@ static int io_fd_block(int fd, int block)
 	return fcntl(fd, F_SETFL, flags) != -1;
 }
 
+const char *parse_port(char *host)
+{
+	int i, len;
+
+	len = strlen(host);
+
+	for (i = 0; i < len; i++) {
+		if (host[i] == ':') {
+			host[i] = 0;
+			return &host[i+1];
+		}
+	}
+
+
+	return NULL;
+}
+
 int lnsocket_connect_with(struct lnsocket *ln, const char *node_id, const char *host, int timeout_ms)
 {
 	int ret;
@@ -458,6 +475,8 @@ int lnsocket_connect_with(struct lnsocket *ln, const char *node_id, const char *
 	struct pubkey their_id;
 	struct node_id their_node_id;
 	struct timeval timeout = {0};
+	char onlyhost[strlen(host)+1];
+	strncpy(onlyhost, host, sizeof(onlyhost));
 	fd_set set;
 
 	timeout.tv_sec = timeout_ms / 1000;
@@ -477,7 +496,8 @@ int lnsocket_connect_with(struct lnsocket *ln, const char *node_id, const char *
 		return note_error(&ln->errs, "failed to convert node_id to pubkey");
 
 	// parse ip into addrinfo
-	if ((ret = getaddrinfo(host, "9735", NULL, &addrs)) || !addrs)
+	const char *port = parse_port(onlyhost);
+	if ((ret = getaddrinfo(onlyhost, port ? port : "9735", NULL, &addrs)) || !addrs)
 		return note_error(&ln->errs, "%s", gai_strerror(ret));
 
 	// create our network socket for comms
