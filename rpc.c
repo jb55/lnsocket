@@ -94,19 +94,16 @@ int main(int argc, const char *argv[])
 		if (!(ok = lnsocket_recv(ln, &msgtype, &buf, &len)))
 			goto done;
 
-		printf("%.*s", len - 8, buf + 8);
-
 		switch (msgtype) {
 		case COMMANDO_REPLY_TERM:
-			printf("\n");
+			printf("%.*s\n", len - 8, buf + 8);
 			goto done;
 		case COMMANDO_REPLY_CONTINUES:
+			printf("%.*s", len - 8, buf + 8);
 			continue;
 		default:
-			printf("\n");
-			fprintf(stderr, "unknown msgtype %d\n", msgtype);
-			ok = 0;
-			goto done;
+			// ignore extra interleaved messages which can happen
+			continue;
 		}
 	}
 
