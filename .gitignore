@@ -10,3 +10,7 @@
 /test
 TODO.bak
 *.a
+*.wasm
+/node_modules
+lnsocket_module.js
+lnsocket.js

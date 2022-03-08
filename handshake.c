@@ -31,6 +31,7 @@ THE SOFTWARE.
 #include <secp256k1_ecdh.h>
 #include <unistd.h>
 #include <sodium/randombytes.h>
+#include "export.h"
 
 struct keypair generate_key(secp256k1_context *ctx)
 {
@@ -232,10 +233,11 @@ static int handshake_success(struct lnsocket *ln, struct handshake *h)
 	return 1;
 }
 
-static int act_three_initiator(struct lnsocket *ln, struct handshake *h)
+static struct act_three *build_act_three(struct lnsocket *ln)
 {
 	u8 spub[PUBKEY_CMPR_LEN];
 	size_t len = sizeof(spub);
+	struct handshake *h = &ln->handshake;
 
 	/* BOLT #8:
 	 * 1. `c = encryptWithAD(temp_k2, 1, h, s.pub.serializeCompressed())`
@@ -258,8 +260,10 @@ static int act_three_initiator(struct lnsocket *ln, struct handshake *h)
 	 *     * where `re` is the ephemeral public key of the responder
 	 */
 	if (!secp256k1_ecdh(ln->secp, h->ss.data, &h->re.pubkey,
-			    ln->key.priv.secret.data, NULL, NULL))
-		return note_error(&ln->errs, "act3 ecdh handshake failed");
+			    ln->key.priv.secret.data, NULL, NULL)) {
+		note_error(&ln->errs, "act3 ecdh handshake failed");
+		return NULL;
+	}
 
 	/* BOLT #8:
 	 *
@@ -284,40 +288,30 @@ static int act_three_initiator(struct lnsocket *ln, struct handshake *h)
 	 */
 	h->act3.v = 0;
 
-	if (write(ln->socket, &h->act3, ACT_THREE_SIZE) != ACT_THREE_SIZE) {
-		return note_error(&ln->errs, "handshake failed on initial send");
-	}
+        handshake_success(ln, &ln->handshake);
 
-	return handshake_success(ln, h);
+	return &h->act3;
 }
 
-// act2: read the response to the message sent in act1
-static int act_two_initiator(struct lnsocket *ln, struct handshake *h)
+
+// act2: handle the response to the message sent in act1
+struct act_three* EXPORT lnsocket_act_two(struct lnsocket *ln, struct act_two *act2)
 {
-	/* BOLT #8:
-	 *
-	 * 1. Read _exactly_ 50 bytes from the network buffer.
-	 *
-	 * 2. Parse the read message (`m`) into `v`, `re`, and `c`:
-	 *    * where `v` is the _first_ byte of `m`, `re` is the next 33
-	 *      bytes of `m`, and `c` is the last 16 bytes of `m`.
-	 */
-	ssize_t size;
+	struct handshake *h = &ln->handshake;
 
-	if ((size = read(ln->socket, &h->act2, ACT_TWO_SIZE)) != ACT_TWO_SIZE) {
-		printf("read %ld bytes, expected %d\n", size, ACT_TWO_SIZE);
-		return note_error(&ln->errs, "%s", strerror(errno));
-	}
-
-	//print_act_two(&h->act2);
+	//print_act_two(act2);
 
 	/* BOLT #8:
 	 *
 	 * 3. If `v` is an unrecognized handshake version, then the responder
 	 *     MUST abort the connection attempt.
 	 */
-	if (h->act2.v != 0)
-		return note_error(&ln->errs, "unrecognized handshake version");
+	if (act2->v != 0) {
+		note_error(&ln->errs, "unrecognized handshake version");
+		return NULL;
+	}
+
+	//print_hex()
 
 	/* BOLT #8:
 	 *
@@ -326,9 +320,10 @@ static int act_two_initiator(struct lnsocket *ln, struct handshake *h)
 	 *       affine coordinates as encoded by the key's serialized
 	 *       composed format.
 	 */
-	if (secp256k1_ec_pubkey_parse(ln->secp, &h->re.pubkey, h->act2.pubkey,
-				sizeof(h->act2.pubkey)) != 1) {
-		return note_error(&ln->errs, "failed to parse remote pubkey");
+	if (secp256k1_ec_pubkey_parse(ln->secp, &h->re.pubkey, act2->pubkey,
+				sizeof(act2->pubkey)) != 1) {
+		note_error(&ln->errs, "failed to parse remote pubkey");
+		return NULL;
 	}
 
 	/* BOLT #8:
@@ -343,7 +338,8 @@ static int act_two_initiator(struct lnsocket *ln, struct handshake *h)
 	 */
 	if (!secp256k1_ecdh(ln->secp, h->ss.data, &h->re.pubkey,
 			    h->e.priv.secret.data, NULL, NULL)) {
-		return note_error(&ln->errs, "act2 ecdh failed");
+		note_error(&ln->errs, "act2 ecdh failed");
+		return NULL;
 	}
 
 	/* BOLT #8:
@@ -361,8 +357,9 @@ static int act_two_initiator(struct lnsocket *ln, struct handshake *h)
 	 *       MUST terminate the connection without any further messages.
 	 */
 	if (!decrypt(&h->temp_k, 0, &h->h, sizeof(h->h),
-		     h->act2.tag, sizeof(h->act2.tag), NULL, 0)) {
-		return note_error(&ln->errs, "handshake decrypt failed");
+		     act2->tag, sizeof(act2->tag), NULL, 0)) {
+		note_error(&ln->errs, "handshake decrypt failed");
+		return NULL;
 	}
 
 	/* BOLT #8:
@@ -372,15 +369,17 @@ static int act_two_initiator(struct lnsocket *ln, struct handshake *h)
 	 *       This step serves to ensure the payload wasn't modified by a
 	 *       MITM.
 	 */
-	sha_mix_in(&h->h, h->act2.tag, sizeof(h->act2.tag));
+	sha_mix_in(&h->h, act2->tag, sizeof(act2->tag));
 
-	return act_three_initiator(ln, h);
+	return build_act_three(ln);
 }
 
 // Prepare the very first message and send it the connected node
 // Wait for a response in act2
-int act_one_initiator(struct lnsocket *ln, struct handshake *h)
+int act_one_initiator_prep(struct lnsocket *ln)
 {
+	struct handshake *h = &ln->handshake;
+
 	h->e = generate_key(ln->secp);
 
 	/* BOLT #8:
@@ -437,9 +436,46 @@ int act_one_initiator(struct lnsocket *ln, struct handshake *h)
 
 	check_act_one(&h->act1);
 
-	if (write(ln->socket, &h->act1, ACT_ONE_SIZE) != ACT_ONE_SIZE) {
+	return 1;
+}
+
+// act2: read the response to the message sent in act1
+static int act_two_initiator(struct lnsocket *ln, struct handshake *h)
+{
+	/* BOLT #8:
+	 *
+	 * 1. Read _exactly_ 50 bytes from the network buffer.
+	 *
+	 * 2. Parse the read message (`m`) into `v`, `re`, and `c`:
+	 *    * where `v` is the _first_ byte of `m`, `re` is the next 33
+	 *      bytes of `m`, and `c` is the last 16 bytes of `m`.
+	 */
+	ssize_t size;
+
+	if ((size = read(ln->socket, &h->act2, ACT_TWO_SIZE)) != ACT_TWO_SIZE) {
+		printf("read %ld bytes, expected %d\n", size, ACT_TWO_SIZE);
+		return note_error(&ln->errs, "%s", strerror(errno));
+	}
+
+	struct act_three *act3 = lnsocket_act_two(ln, &h->act2);
+	if (act3 == NULL)
+		return 0;
+
+	if (write(ln->socket, act3, ACT_THREE_SIZE) != ACT_THREE_SIZE) {
 		return note_error(&ln->errs, "handshake failed on initial send");
 	}
 
-	return act_two_initiator(ln, h);
+	return 1;
+}
+
+int act_one_initiator(struct lnsocket *ln)
+{
+	if (!act_one_initiator_prep(ln))
+		return 0;
+
+	if (write(ln->socket, &ln->handshake.act1, ACT_ONE_SIZE) != ACT_ONE_SIZE) {
+		return note_error(&ln->errs, "handshake failed on initial send");
+	}
+
+	return act_two_initiator(ln, &ln->handshake);
 }

@@ -71,12 +71,12 @@ static int hex_decode(const char *str, size_t slen, void *buf, size_t bufsize)
 }
 
 
-static int parse_node_id(const char *str, struct node_id *dest)
+int parse_node_id(const char *str, struct node_id *dest)
 {
 	return hex_decode(str, strlen(str), dest->k, sizeof(*dest));
 }
 
-static int pubkey_from_node_id(secp256k1_context *secp, struct pubkey *key,
+int pubkey_from_node_id(secp256k1_context *secp, struct pubkey *key,
 		const struct node_id *id)
 {
 	return secp256k1_ec_pubkey_parse(secp, &key->pubkey,
@@ -102,18 +102,13 @@ static int read_all(int fd, void *data, size_t size)
 	return 1;
 }
 
-int lnsocket_perform_init(struct lnsocket *ln)
+int EXPORT lnsocket_make_default_initmsg(unsigned char *msgbuf, int buflen)
 {
 	u8 tlvbuf[1024];
-	u8 msgbuf[1024];
+	struct tlv network_tlv;
 	u8 global_features[2] = {0};
 	u8 features[5] = {0};
-	struct tlv network_tlv;
 	u16 len;
-	u8 *buf;
-
-	if (!lnsocket_read(ln, &buf, &len))
-		return 0;
 
 	const u8 genesis_block[]  = {
 	  0x6f, 0xe2, 0x8c, 0x0a, 0xb6, 0xf1, 0xb3, 0x72, 0xc1, 0xa6, 0xa2, 0x46,
@@ -129,11 +124,34 @@ int lnsocket_perform_init(struct lnsocket *ln)
 
 	const struct tlv *init_tlvs[] = { &network_tlv } ;
 
-	if (!lnsocket_make_init_msg(msgbuf, sizeof(msgbuf),
+	if (!lnsocket_make_init_msg(msgbuf, buflen,
 			global_features, sizeof(global_features),
 			features, sizeof(features),
 			init_tlvs, 1,
 			&len))
+		return 0;
+
+	return (int)len;
+}
+
+static void print_hex(u8 *bytes, int len) {
+	int i;
+	for (i = 0; i < len; ++i) {
+		printf("%02x", bytes[i]);
+	}
+}
+
+int lnsocket_perform_init(struct lnsocket *ln)
+{
+	u8 msgbuf[1024];
+	u16 len;
+	u8 *buf;
+
+	// read the init message from the other side and ignore it
+	if (!lnsocket_read(ln, &buf, &len))
+		return 0;
+
+	if (!(len = lnsocket_make_default_initmsg(msgbuf, sizeof(msgbuf))))
 		return 0;
 
 	if (!lnsocket_write(ln, msgbuf, len))
@@ -180,27 +198,24 @@ int lnsocket_recv(struct lnsocket *ln, u16 *msg_type, unsigned char **payload, u
 	return 1;
 }
 
-int lnsocket_read(struct lnsocket *ln, unsigned char **buf, unsigned short *len)
+int EXPORT lnsocket_decrypt(struct lnsocket *ln, unsigned char *packet, int len)
 {
-	struct cursor enc, dec;
+	struct cursor read, enc, dec;
 	u8 hdr[18];
 	u16 size;
 
-	reset_cursor(&ln->errs.cur);
-	reset_cursor(&ln->msgbuf);
+	make_cursor(packet, packet + len, &read);
+	if (!cursor_pull(&read, hdr, 18)) {
+		return note_error(&ln->errs, "not enough bytes in header, have %d, need 18", len);
+	}
 
-	if (!read_all(ln->socket, hdr, sizeof(hdr)))
-		return note_error(&ln->errs,"Failed reading header: %s",
-				strerror(errno));
-
-	if (!cryptomsg_decrypt_header(&ln->crypto_state, hdr, &size))
+	if (!cryptomsg_decrypt_header(&ln->crypto_state, hdr, &size)) {
 		return note_error(&ln->errs,
 				"Failed hdr decrypt with rn=%"PRIu64,
 				ln->crypto_state.rn-1);
+	}
 
-	if (!cursor_slice(&ln->msgbuf, &enc, size + 16))
-		return note_error(&ln->errs, "out of memory");
-
+	reset_cursor(&ln->msgbuf);
 	if (!cursor_slice(&ln->msgbuf, &dec, size))
 		return note_error(&ln->errs, "out of memory: %d + %d = %d > %d",
 				ln->msgbuf.end - ln->msgbuf.p, size,
@@ -208,19 +223,61 @@ int lnsocket_read(struct lnsocket *ln, unsigned char **buf, unsigned short *len)
 				MSGBUF_MEM
 				);
 
-	if (!read_all(ln->socket, enc.p, enc.end - enc.start))
-		return note_error(&ln->errs, "Failed reading body: %s",
-				strerror(errno));
+	if (size + 16 != read.end - read.p)
+		return note_error(&ln->errs, "expected enc body size of %d, got %d",
+				size + 16, read.end - read.p);
+
+	make_cursor(read.p, read.end, &enc);
 
 	if (!cryptomsg_decrypt_body(&ln->crypto_state,
 				enc.start, enc.end - enc.start,
 				dec.start, dec.end - dec.start))
 		return note_error(&ln->errs, "error decrypting body");
 
-	*buf = dec.start;
-	*len = dec.end - dec.start;
+	return dec.end - dec.start;
+}
 
-	return 1;
+int lnsocket_read(struct lnsocket *ln, unsigned char **buf, unsigned short *len)
+{
+        struct cursor enc, dec;
+        u8 hdr[18];
+        u16 size;
+
+        reset_cursor(&ln->errs.cur);
+        reset_cursor(&ln->msgbuf);
+
+        if (!read_all(ln->socket, hdr, sizeof(hdr)))
+                return note_error(&ln->errs,"Failed reading header: %s",
+                                strerror(errno));
+
+        if (!cryptomsg_decrypt_header(&ln->crypto_state, hdr, &size))
+                return note_error(&ln->errs,
+                                "Failed hdr decrypt with rn=%"PRIu64,
+                                ln->crypto_state.rn-1);
+
+        if (!cursor_slice(&ln->msgbuf, &enc, size + 16))
+                return note_error(&ln->errs, "out of memory");
+
+        if (!cursor_slice(&ln->msgbuf, &dec, size))
+                return note_error(&ln->errs, "out of memory: %d + %d = %d > %d",
+                                ln->msgbuf.end - ln->msgbuf.p, size,
+                                ln->msgbuf.end - ln->msgbuf.p + size,
+                                MSGBUF_MEM
+                                );
+
+        if (!read_all(ln->socket, enc.p, enc.end - enc.start))
+                return note_error(&ln->errs, "Failed reading body: %s",
+                                strerror(errno));
+
+        if (!cryptomsg_decrypt_body(&ln->crypto_state,
+                                enc.start, enc.end - enc.start,
+                                dec.start, dec.end - dec.start))
+                return note_error(&ln->errs, "error decrypting body");
+
+        *buf = dec.start;
+        *len = dec.end - dec.start;
+
+        return 1;
 }
 
 static int highest_byte(unsigned char *buf, int buflen)
@@ -296,7 +353,7 @@ int lnsocket_make_network_tlv(unsigned char *buf, int buflen,
 	return 1;
 }
 
-int lnsocket_make_ping_msg(unsigned char *buf, int buflen, u16 num_pong_bytes, u16 ignored_bytes, u16 *outlen)
+int lnsocket_make_ping_msg(unsigned char *buf, int buflen, u16 num_pong_bytes, u16 ignored_bytes)
 {
 	struct cursor msg;
 	int i;
@@ -314,9 +371,7 @@ int lnsocket_make_ping_msg(unsigned char *buf, int buflen, u16 num_pong_bytes, u
 			return 0;
 	}
 
-	*outlen = msg.p - msg.start;
-
-	return 1;
+	return msg.p - msg.start;
 }
 
 int lnsocket_make_init_msg(unsigned char *buf, int buflen,
@@ -353,26 +408,43 @@ int lnsocket_make_init_msg(unsigned char *buf, int buflen,
 	return 1;
 }
 
-int lnsocket_write(struct lnsocket *ln, const u8 *msg, unsigned short msglen)
+unsigned char* EXPORT lnsocket_msgbuf(struct lnsocket *ln)
 {
-	ssize_t writelen, outcap;
+	return ln->msgbuf.start;
+}
+
+int EXPORT lnsocket_encrypt(struct lnsocket *ln, const u8 *msg, unsigned short msglen)
+{
+	ssize_t outcap;
 	size_t outlen;
-	u8 *out;
 
 	// this is just temporary so we don't need to move the memory cursor
 	reset_cursor(&ln->msgbuf);
 
-	out = ln->msgbuf.start;
+	u8 *out = ln->msgbuf.start;
 	outcap = ln->msgbuf.end - ln->msgbuf.start;
 
+#ifndef __EMSCRIPTEN__
 	if (!ln->socket)
 		return note_error(&ln->errs, "not connected");
+#endif
 
 	if (outcap <= 0)
 		return note_error(&ln->errs, "out of memory");
 
 	if (!cryptomsg_encrypt_msg(&ln->crypto_state, msg, msglen, out, &outlen, (size_t)outcap))
 		return note_error(&ln->errs, "encrypt message failed, out of memory");
+
+	return outlen;
+}
+
+int lnsocket_write(struct lnsocket *ln, const u8 *msg, unsigned short msglen)
+{
+	ssize_t writelen, outlen;
+	u8 *out = ln->msgbuf.start;
+
+	if (!(outlen = lnsocket_encrypt(ln, msg, msglen)))
+		return 0;
 
 	if ((writelen = write(ln->socket, out, outlen)) != outlen)
 		return note_error(&ln->errs,
@@ -423,7 +495,7 @@ void lnsocket_destroy(struct lnsocket *lnsocket)
 	free(lnsocket->mem.start);
 }
 
-static int is_zero(void *vp, int size)
+int is_zero(void *vp, int size)
 {
 	u8 *p = (u8*)vp;
 	const u8 *start = p;
@@ -471,7 +543,6 @@ int lnsocket_connect_with(struct lnsocket *ln, const char *node_id, const char *
 {
 	int ret;
 	struct addrinfo *addrs = NULL;
-	struct handshake h;
 	struct pubkey their_id;
 	struct node_id their_node_id;
 	struct timeval timeout = {0};
@@ -523,13 +594,13 @@ int lnsocket_connect_with(struct lnsocket *ln, const char *node_id, const char *
 	}
 
 	// prepare some data for ACT1
-	new_handshake(ln->secp, &h, &their_id);
+	new_handshake(ln->secp, &ln->handshake, &their_id);
 
-	h.side = INITIATOR;
-	h.their_id = their_id;
+	ln->handshake.side = INITIATOR;
+	ln->handshake.their_id = their_id;
 
 	// let's do this!
-	return act_one_initiator(ln, &h);
+	return act_one_initiator(ln);
 }
 
 int lnsocket_connect(struct lnsocket *ln, const char *node_id, const char *host)
@@ -541,6 +612,11 @@ int lnsocket_fd(struct lnsocket *ln, int *fd)
 {
 	*fd = ln->socket;
 	return 1;
+}
+
+void * lnsocket_secp(struct lnsocket *ln)
+{
+	return ln->secp;
 }
 
 void lnsocket_genkey(struct lnsocket *ln)

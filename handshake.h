@@ -140,7 +140,8 @@ void new_handshake(secp256k1_context *secp, struct handshake *handshake,
 
 struct lnsocket;
 
-int act_one_initiator(struct lnsocket *ln, struct handshake *h);
+int act_one_initiator_prep(struct lnsocket *ln);
+int act_one_initiator(struct lnsocket *ln);
 struct keypair generate_key(secp256k1_context *ctx);
 
 #endif /* LNLINK_HANDSHAKE_H */

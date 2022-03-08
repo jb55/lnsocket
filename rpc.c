@@ -69,7 +69,7 @@ int main(int argc, const char *argv[])
 	if (verbose)
 		fprintf(stderr, "init success\n");
 
-	if (!(ok = commando_make_rpc_msg(method, params, rune, 1, msgbuf, sizeof(msgbuf), &len)))
+	if (!(ok = len = commando_make_rpc_msg(method, params, rune, 1, msgbuf, sizeof(msgbuf))))
 		goto done;
 
 	if (!(ok = lnsocket_write(ln, msgbuf, len)))

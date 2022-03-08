@@ -38,7 +38,7 @@ int main(int argc, const char *argv[])
 
 	printf("init ok!\n");
 
-	if (!(ok = lnsocket_make_ping_msg(msgbuf, sizeof(msgbuf), 1, 1, &len)))
+	if (!(ok = len = lnsocket_make_ping_msg(msgbuf, sizeof(msgbuf), 1, 1)))
 		goto done;
 
 	if (!(ok = lnsocket_write(ln, msgbuf, len)))

@@ -1,5 +1,5 @@
 
-CFLAGS=-Wall -g -Og -Ideps/secp256k1/include -Ideps/libsodium/src/libsodium/include -Ideps
+CFLAGS=-Wall -g -O2 -Ideps/secp256k1/include -Ideps/libsodium/src/libsodium/include -Ideps
 LDFLAGS=
 
 SUBMODULES=deps/libsodium deps/secp256k1
@@ -10,9 +10,11 @@ SIM_SDK=$(XCODEDIR)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimu
 IOS_SDK=$(XCODEDIR)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk
 
 ARS=libsecp256k1.a libsodium.a
+WASM_ARS=target/wasm/libsecp256k1.a target/wasm/libsodium.a target/wasm/lnsocket.a
 OBJS=sha256.o hkdf.o hmac.o sha512.o lnsocket.o error.o handshake.o crypto.o bigsize.o commando.o
 ARM64_OBJS=$(OBJS:.o=-arm64.o)
 X86_64_OBJS=$(OBJS:.o=-x86_64.o)
+WASM_OBJS=$(OBJS:.o=-wasm.o) lnsocket_wasm-wasm.o
 BINS=test lnrpc
 
 DEPS=$(OBJS) $(ARS) config.h
@@ -20,6 +22,11 @@ DEPS=$(OBJS) $(ARS) config.h
 all: $(BINS) lnsocket.a
 
 ios: target/ios/lnsocket.a target/ios/libsodium.a target/ios/libsecp256k1.a
+
+wasm: lnsocket.js
+
+lnsocket.js: lnsocket_module.js lnsocket_lib.js
+	cat lnsocket_module.js lnsocket_lib.js > $@
 
 deps/libsodium/.git:
 	@tools/refresh-submodules.sh $(SUBMODULES)
@@ -38,6 +45,10 @@ target/x86_64/lnsocket.a: $(X86_64_OBJS)
 	@mkdir -p target/x86_64
 	ar rcs $@ $^
 
+target/wasm/lnsocket.a: $(WASM_OBJS)
+	@mkdir -p target/wasm
+	emar rcs $@ $^
+
 target/ios/lnsocket.a: target/x86_64/lnsocket.a target/arm64/lnsocket.a
 	@mkdir -p target/ios
 	lipo -create $^ -output $@
@@ -45,6 +56,10 @@ target/ios/lnsocket.a: target/x86_64/lnsocket.a target/arm64/lnsocket.a
 %-arm64.o: %.c config.h
 	@echo "cc $@"
 	@$(CC) $(CFLAGS) -c $< -o $@ -arch arm64 -isysroot $(IOS_SDK) -target arm64-apple-ios -fembed-bitcode
+
+%-wasm.o: %.c config.h
+	@echo "emcc $@"
+	@emcc $(CFLAGS) -c $< -o $@
 
 %-x86_64.o: %.c config.h
 	@echo "cc $@"
@@ -88,9 +103,19 @@ libsodium.a: deps/libsodium/src/libsodium/.libs/libsodium.a
 	cp $< $@
 
 target/ios/libsodium.a: deps/libsodium/libsodium-ios/lib/libsodium.a
+	mkdir -p target/ios
 	cp $< $@
 
 target/ios/libsecp256k1.a: deps/secp256k1/libsecp256k1-ios/lib/libsecp256k1.a
+	mkdir -p target/ios
+	cp $< $@
+
+target/wasm/libsecp256k1.a: deps/secp256k1/libsecp256k1-wasm/lib/libsecp256k1.a
+	mkdir -p target/wasm
+	cp $< $@
+
+target/wasm/libsodium.a: deps/libsodium/libsodium-wasm/lib/libsodium.a
+	mkdir -p target/wasm
 	cp $< $@
 
 deps/libsodium/libsodium-ios/lib/libsodium.a:
@@ -100,9 +125,18 @@ deps/libsodium/libsodium-ios/lib/libsodium.a:
 deps/secp256k1/libsecp256k1-ios/lib/libsecp256k1.a:
 	./tools/secp-ios.sh
 
+deps/secp256k1/libsecp256k1-wasm/lib/libsecp256k1.a:
+	./tools/secp-wasm.sh
+
+deps/libsodium/libsodium-wasm/lib/libsodium.a:
+	./tools/sodium-wasm.sh
+
 deps/libsodium/src/libsodium/.libs/libsodium.a: deps/libsodium/config.status
 	cd deps/libsodium/src/libsodium; \
 	make -j2 libsodium.la
+
+check: test
+	@./test
 
 test: test.o $(DEPS) $(ARS)
 	@echo "ld test"
@@ -112,14 +146,17 @@ lnrpc: rpc.o $(DEPS) $(ARS)
 	@echo "ld lnrpc"
 	@$(CC) $(CFLAGS) rpc.o $(OBJS) $(ARS) $(LDFLAGS) -o $@
 
+lnsocket_module.js: $(WASM_ARS) lnsocket_pre.js
+	emcc --pre-js lnsocket_pre.js -s ENVIRONMENT=web -s MODULARIZE -s EXPORTED_RUNTIME_METHODS=ccall,cwrap $(CFLAGS) -Wl,-whole-archive $(WASM_ARS) -Wl,-no-whole-archive -o $@ 
+
 tags: fake
 	find . -name '*.c' -or -name '*.h' | xargs ctags
 
 clean: fake
-	rm -rf $(BINS) config.h $(OBJS) $(ARM64_OBJS) $(X86_64_OBJS) target
+	rm -rf $(BINS) config.h $(OBJS) $(ARM64_OBJS) $(X86_64_OBJS) $(WASM_OBJS) target
 
 distclean: clean
-	rm -rf $(ARS) deps/secp256k1/src/libsecp256k1-config.h deps/libsodium/libsodium-ios deps/secp256k1/libsecp256k1-ios
+	rm -rf $(ARS) deps/secp256k1/src/libsecp256k1-config.h deps/libsodium/libsodium-ios deps/secp256k1/libsecp256k1-ios deps/libsodium/libsodium-wasm deps/secp256k1/libsecp256k1-wasm lnsocket.wasm
 	cd deps/secp256k1; \
 	make distclean
 	cd deps/libsodium; \
