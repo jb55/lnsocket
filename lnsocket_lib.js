@@ -235,7 +235,7 @@ async function lnsocket_init() {
 	}
 
 	function handle_connect(ln, node_id, host) {
-		const ws = new WebSocket(`wss://${host}`)
+		const ws = new WebSocket(`ws://${host}`)
 		return new Promise((resolve, reject) => {
 			ws.onmessage = (v) => {
 				ln.queue.push(v.data.arrayBuffer())
