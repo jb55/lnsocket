@@ -43,9 +43,9 @@ WASM/JS/Web
 
 $ make wasm
 
-This will build lnsocket.js and lnsocket.wasm so that you can connect to the
-lightning network from your browser via websockets. See lnsocket_example.js for
-a demo.
+This will build lnsocket.js and lnsocket_module.wasm so that you can connect to
+the lightning network from your browser via websockets. See lnsocket_example.js
+for a demo.
 
 
 Examples
