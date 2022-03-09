@@ -13,7 +13,7 @@
 
 int usage()
 {
-	printf("lnrpc <nodeid> <ip/hostname> <method> <rune> [params (json string)]\n\n");
+	printf("lnrpc <nodeid> <ip/hostname> <rune> <method>  [params (json string)]\n\n");
 	printf("currently supports commando for clightning, but potentially more rpc types in the future!\n");
 	return 0;
 }
@@ -51,8 +51,8 @@ int main(int argc, const char *argv[])
 
 	const char *nodeid = argv[1];
 	const char *host = argv[2];
-	const char *method = argv[3];
-	const char *rune = argv[4];
+	const char *rune = argv[3];
+	const char *method = argv[4];
 	const char *params = argc < 6 ? argv[5] : NULL;
 
 	if (!(ok = lnsocket_connect(ln, nodeid, host)))
