@@ -38,6 +38,16 @@ This will build lnsocket.a, libsodium.a and libsecp256k1.a under target/ios for
 arm64 and ios-sim.
 
 
+WASM/JS/Web
+-----------
+
+$ make wasm
+
+This will build lnsocket.js and lnsocket.wasm so that you can connect to the
+lightning network from your browser via websockets. See lnsocket_example.js for
+a demo.
+
+
 Examples
 --------
 

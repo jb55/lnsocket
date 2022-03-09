@@ -134,12 +134,14 @@ int EXPORT lnsocket_make_default_initmsg(unsigned char *msgbuf, int buflen)
 	return (int)len;
 }
 
+/*
 static void print_hex(u8 *bytes, int len) {
 	int i;
 	for (i = 0; i < len; ++i) {
 		printf("%02x", bytes[i]);
 	}
 }
+*/
 
 int lnsocket_perform_init(struct lnsocket *ln)
 {
