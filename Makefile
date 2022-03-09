@@ -142,9 +142,9 @@ test: test.o $(DEPS) $(ARS)
 	@echo "ld test"
 	@$(CC) $(CFLAGS) test.o $(OBJS) $(ARS) $(LDFLAGS) -o $@
 
-lnrpc: rpc.o $(DEPS) $(ARS)
+lnrpc: lnrpc.o $(DEPS) $(ARS)
 	@echo "ld lnrpc"
-	@$(CC) $(CFLAGS) rpc.o $(OBJS) $(ARS) $(LDFLAGS) -o $@
+	@$(CC) $(CFLAGS) lnrpc.o $(OBJS) $(ARS) $(LDFLAGS) -o $@
 
 lnsocket_module.js: $(WASM_ARS) lnsocket_pre.js
 	emcc --pre-js lnsocket_pre.js -s ENVIRONMENT=web -s MODULARIZE -s EXPORTED_RUNTIME_METHODS=ccall,cwrap $(CFLAGS) -Wl,-whole-archive $(WASM_ARS) -Wl,-no-whole-archive -o $@ 

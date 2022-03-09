@@ -53,7 +53,7 @@ Examples
 
 * See test.c for a ping/pong example
 
-* See rpc.c for an RPC example
+* See lnrpc.c for an RPC example
 
 Contributing
 ------------
