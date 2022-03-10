@@ -53,7 +53,7 @@ int main(int argc, const char *argv[])
 	const char *host = argv[2];
 	const char *rune = argv[3];
 	const char *method = argv[4];
-	const char *params = argc < 6 ? argv[5] : NULL;
+	const char *params = argc < 7 ? argv[5] : NULL;
 
 	if (!(ok = lnsocket_connect(ln, nodeid, host)))
 		goto done;
