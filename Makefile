@@ -9,6 +9,7 @@ XCODEDIR=$(shell xcode-select -p)
 SIM_SDK=$(XCODEDIR)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk
 IOS_SDK=$(XCODEDIR)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk
 
+HEADERS=config.h deps/secp256k1/include/secp256k1.h
 ARS=libsecp256k1.a libsodium.a
 WASM_ARS=target/wasm/libsecp256k1.a target/wasm/libsodium.a target/wasm/lnsocket.a
 OBJS=sha256.o hkdf.o hmac.o sha512.o lnsocket.o error.o handshake.o crypto.o bigsize.o commando.o
@@ -72,9 +73,11 @@ config.h: configurator
 configurator: configurator.c
 	$(CC) $< -o $@
 
-%.o: %.c config.h
+%.o: %.c $(HEADERS)
 	@echo "cc $@"
 	@$(CC) $(CFLAGS) -c $< -o $@
+
+deps/secp256k1/include/secp256k1.h: deps/secp256k1/.git
 
 deps/secp256k1/src/libsecp256k1-config.h: deps/secp256k1/configure
 	cd deps/secp256k1; \
@@ -118,17 +121,17 @@ target/wasm/libsodium.a: deps/libsodium/libsodium-wasm/lib/libsodium.a
 	mkdir -p target/wasm
 	cp $< $@
 
-deps/libsodium/libsodium-ios/lib/libsodium.a:
+deps/libsodium/libsodium-ios/lib/libsodium.a: deps/libsodium/configure
 	cd deps/libsodium; \
 	./dist-build/ios.sh
 
-deps/secp256k1/libsecp256k1-ios/lib/libsecp256k1.a:
+deps/secp256k1/libsecp256k1-ios/lib/libsecp256k1.a: deps/secp256k1/configure
 	./tools/secp-ios.sh
 
-deps/secp256k1/libsecp256k1-wasm/lib/libsecp256k1.a:
+deps/secp256k1/libsecp256k1-wasm/lib/libsecp256k1.a: deps/secp256k1/configure
 	./tools/secp-wasm.sh
 
-deps/libsodium/libsodium-wasm/lib/libsodium.a:
+deps/libsodium/libsodium-wasm/lib/libsodium.a: deps/libsodium/configure
 	./tools/sodium-wasm.sh
 
 deps/libsodium/src/libsodium/.libs/libsodium.a: deps/libsodium/config.status
@@ -156,11 +159,7 @@ clean: fake
 	rm -rf $(BINS) config.h $(OBJS) $(ARM64_OBJS) $(X86_64_OBJS) $(WASM_OBJS) target
 
 distclean: clean
-	rm -rf $(ARS) deps/secp256k1/src/libsecp256k1-config.h deps/libsodium/libsodium-ios deps/secp256k1/libsecp256k1-ios deps/libsodium/libsodium-wasm deps/secp256k1/libsecp256k1-wasm lnsocket.wasm
-	cd deps/secp256k1; \
-	make distclean
-	cd deps/libsodium; \
-	make distclean
+	rm -rf $(ARS) deps lnsocket.wasm
 
 
 .PHONY: fake
