@@ -1,5 +1,5 @@
 
-CFLAGS=-Wall -g -Os -Ideps/secp256k1/include -Ideps/libsodium/src/libsodium/include -Ideps
+CFLAGS=-Wall -Os -Ideps/secp256k1/include -Ideps/libsodium/src/libsodium/include -Ideps
 LDFLAGS=
 
 SUBMODULES=deps/secp256k1
@@ -163,7 +163,7 @@ target/wasm/lnsocket.wasm: target/tmp/lnsocket.js
 
 target/tmp/lnsocket.js: $(WASM_ARS) lnsocket_pre.js
 	mkdir -p target/tmp
-	emcc --pre-js lnsocket_pre.js -s ENVIRONMENT=web -s MODULARIZE -s 'EXPORTED_FUNCTIONS=["_free"]' -s EXPORTED_RUNTIME_METHODS=ccall,cwrap $(CFLAGS) -Wl,-whole-archive $(WASM_ARS) -Wl,-no-whole-archive -o target/tmp/lnsocket.js
+	emcc --pre-js lnsocket_pre.js -s ENVIRONMENT=web -s MODULARIZE -flto -s 'EXPORTED_FUNCTIONS=["_malloc", "_free"]' -s EXPORTED_RUNTIME_METHODS=ccall,cwrap $(CFLAGS) -Wl,-whole-archive $(WASM_ARS) -Wl,-no-whole-archive -o target/tmp/lnsocket.js
 
 tags: fake
 	find . -name '*.c' -or -name '*.h' | xargs ctags
