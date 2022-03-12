@@ -34,7 +34,7 @@ libsodium-1.0.18-stable.tar.gz:
 
 deps/libsodium/configure: libsodium-1.0.18-stable.tar.gz
 	tar xvf $^; \
-	mkdir -p deps; \
+	@mkdir -p deps; \
 	mv libsodium-stable deps/libsodium
 
 deps/secp256k1/.git:
@@ -114,19 +114,19 @@ libsodium.a: deps/libsodium/src/libsodium/.libs/libsodium.a
 	cp $< $@
 
 target/ios/libsodium.a: deps/libsodium/libsodium-ios/lib/libsodium.a
-	mkdir -p target/ios
+	@mkdir -p target/ios
 	cp $< $@
 
 target/ios/libsecp256k1.a: deps/secp256k1/libsecp256k1-ios/lib/libsecp256k1.a
-	mkdir -p target/ios
+	@mkdir -p target/ios
 	cp $< $@
 
 target/wasm/libsecp256k1.a: deps/secp256k1/libsecp256k1-wasm/lib/libsecp256k1.a
-	mkdir -p target/wasm
+	@mkdir -p target/wasm
 	cp $< $@
 
 target/wasm/libsodium.a: deps/libsodium/libsodium-js/lib/libsodium.a
-	mkdir -p target/wasm
+	@mkdir -p target/wasm
 	cp $< $@
 
 deps/libsodium/libsodium-ios/lib/libsodium.a: deps/libsodium/configure
@@ -162,7 +162,7 @@ target/wasm/lnsocket.wasm: target/tmp/lnsocket.js
 	cp target/tmp/lnsocket.wasm target/wasm/lnsocket.wasm
 
 target/tmp/lnsocket.js: $(WASM_ARS) lnsocket_pre.js
-	mkdir -p target/tmp
+	@mkdir -p target/tmp
 	emcc --pre-js lnsocket_pre.js -s ENVIRONMENT=web -s MODULARIZE -flto -s 'EXPORTED_FUNCTIONS=["_malloc", "_free"]' -s EXPORTED_RUNTIME_METHODS=ccall,cwrap $(CFLAGS) -Wl,-whole-archive $(WASM_ARS) -Wl,-no-whole-archive -o target/tmp/lnsocket.js
 
 tags: fake
