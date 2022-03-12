@@ -57,3 +57,5 @@ Send patches to [mailto:jb55@jb55.com](jb55@jb55.com):
     $ git send-email --annotate HEAD^
 
 See [https://git-send-email.io/](git-send-email.io) for configuring your mailer
+
+You can [open a PR on github](https://github.com/jb55/lnsocket) as well
