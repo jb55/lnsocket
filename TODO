@@ -1,6 +1,5 @@
 pull only what is needed from secp and sodium
-static lib
 dynamic lib
 automatic towire/fromwire serialization
 better helpers for building tlvs
-(A) ios build
+fix wasm build on macos
