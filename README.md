@@ -30,15 +30,15 @@ You'll need `emscripten` for the `wasm` build.
     $ make ios
 
 This will build `lnsocket.a`, `libsodium.a` and `libsecp256k1.a` under
-target/ios for arm64 and ios-sim.
+`target/ios` for `arm64` and `ios-sim-x86`.
 
 
 ### WASM/JS/Web
 
     $ make wasm
 
-This will build `lnsocket.js` and `lnsocket_module.wasm` so that you can
-connect to the lightning network from your browser via websockets. See
+This will build `lnsocket.js` and `lnsocket.wasm` in `target/wasm` so that you
+can connect to the lightning network from your browser via websockets. See
 [lnsocket_example.js](lnsocket_example.js) for a demo.
 
 
@@ -50,12 +50,12 @@ connect to the lightning network from your browser via websockets. See
 
 ## Contributing
 
-Send patches to [mailto:jb55@jb55.com](jb55@jb55.com):
+Send patches to [jb55@jb55.com](mailto:jb55@jb55.com):
 
     $ git config format.subjectPrefix 'PATCH lnsocket'
     $ git config sendemail.to 'William Casarin <jb55@jb55.com>'
     $ git send-email --annotate HEAD^
 
-See [https://git-send-email.io/](git-send-email.io) for configuring your mailer
+See [git-send-email.io](https://git-send-email.io/) for configuring your mailer
 
 You can [open a PR on github](https://github.com/jb55/lnsocket) as well
