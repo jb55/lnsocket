@@ -8,9 +8,10 @@
 /configurator.out.dSYM
 /configurator
 /test
+/target
 TODO.bak
 *.a
 *.wasm
 /node_modules
-lnsocket_module.js
-lnsocket.js
+/libsodium*.tar.gz
+/deps/libsodium

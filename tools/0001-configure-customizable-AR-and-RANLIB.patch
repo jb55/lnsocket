@@ -1,0 +1,39 @@
+From 5964a2ebc52305d51167ebdf0479dc17aae200b6 Mon Sep 17 00:00:00 2001
+From: William Casarin <jb55@jb55.com>
+Date: Sat, 12 Mar 2022 10:48:28 -0800
+Subject: [PATCH] configure: customizable AR and RANLIB
+
+This is needed for emscripten wasm builds
+
+Signed-off-by: William Casarin <jb55@jb55.com>
+---
+ configure.ac | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index cc766b2..d938c68 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -34,8 +34,8 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+ 
+ PKG_PROG_PKG_CONFIG
+ 
+-AC_PATH_TOOL(AR, ar)
+-AC_PATH_TOOL(RANLIB, ranlib)
++AC_PATH_TOOL(AR, $AR, ar)
++AC_PATH_TOOL(RANLIB, $RANLIB, ranlib)
+ AC_PATH_TOOL(STRIP, strip)
+ 
+ AC_PROG_CC
+@@ -438,6 +438,8 @@ fi
+ echo
+ echo "  valgrind                = $enable_valgrind"
+ echo "  CC                      = $CC"
++echo "  AR                      = $AR"
++echo "  RANLIB                  = $RANLIB"
+ echo "  CPPFLAGS                = $CPPFLAGS"
+ echo "  SECP_CFLAGS             = $SECP_CFLAGS"
+ echo "  CFLAGS                  = $CFLAGS"
+-- 
+2.32.0 (Apple Git-132)
+
