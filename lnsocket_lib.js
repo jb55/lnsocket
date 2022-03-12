@@ -5,7 +5,7 @@ async function lnsocket_init() {
 	const ACT_ONE_SIZE = 50
 	const ACT_TWO_SIZE = 50
 	const ACT_THREE_SIZE = 66
-	const DEFAULT_TIMEOUT = 3000
+	const DEFAULT_TIMEOUT = 15000
 
 	const COMMANDO_REPLY_CONTINUES = 0x594b
 	const COMMANDO_REPLY_TERM = 0x594d
@@ -234,24 +234,38 @@ async function lnsocket_init() {
 		return await this.read()
 	}
 
+	LNSocket.prototype.disconnect = function lnsocket_disconnect() {
+		if (this.connected === true && this.ws) {
+			this.ws.close()
+			return true
+		}
+		return false
+	}
+
 	function handle_connect(ln, node_id, host) {
-		const ws = new WebSocket(`ws://${host}`)
+		const isws = host.startsWith("ws://") || host.startsWith("wss://")
+		if (!isws)
+			throw new Error("host must start with ws:// or wss://")
+		const ws = new WebSocket(host)
 		return new Promise((resolve, reject) => {
+			const timeout = ln.opts.timeout || DEFAULT_TIMEOUT
+			const timer = setTimeout(reject, timeout);
+
 			ws.onmessage = (v) => {
 				ln.queue.push(v.data.arrayBuffer())
 			}
 
 			ws.addEventListener('open', function(ev) {
 				ln.ws = ws
+				ln.connected = true
+				clearTimeout(timer)
 				resolve(ws)
 			});
 
 			ws.addEventListener('close', function(ev) {
-				reject()
+				ln.connected = false
+				console.log("closed websocket connection")
 			});
-
-			const timeout = ln.opts.timeout || DEFAULT_TIMEOUT
-			setTimeout(reject, timeout);
 		})
 	}
 
