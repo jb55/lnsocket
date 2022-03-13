@@ -12,7 +12,7 @@ IOS_SDK=$(XCODEDIR)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk
 HEADERS=config.h deps/secp256k1/include/secp256k1.h deps/libsodium/src/libsodium/include/sodium/crypto_aead_chacha20poly1305.h
 ARS=libsecp256k1.a libsodium.a
 WASM_ARS=target/wasm/libsecp256k1.a target/wasm/libsodium.a target/wasm/lnsocket.a
-OBJS=sha256.o hkdf.o hmac.o sha512.o lnsocket.o error.o handshake.o crypto.o bigsize.o commando.o
+OBJS=sha256.o hkdf.o hmac.o sha512.o lnsocket.o error.o handshake.o crypto.o bigsize.o commando.o bech32.o
 ARM64_OBJS=$(OBJS:.o=-arm64.o)
 X86_64_OBJS=$(OBJS:.o=-x86_64.o)
 WASM_OBJS=$(OBJS:.o=-wasm.o) lnsocket_wasm-wasm.o
