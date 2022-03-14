@@ -1,3 +1,6 @@
 dynamic lib
 automatic towire/fromwire serialization
 better helpers for building tlvs
+(B) nodejs lib
+(A) golang lib
+(B) python bindings
