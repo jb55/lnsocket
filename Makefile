@@ -10,7 +10,7 @@ SIM_SDK=$(XCODEDIR)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimu
 IOS_SDK=$(XCODEDIR)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk
 
 HEADERS=config.h deps/secp256k1/include/secp256k1.h deps/libsodium/src/libsodium/include/sodium/crypto_aead_chacha20poly1305.h
-ARS=libsecp256k1.a libsodium.a
+ARS=libsecp256k1.a libsodium.a lnsocket.a
 WASM_ARS=target/wasm/libsecp256k1.a target/wasm/libsodium.a target/wasm/lnsocket.a
 OBJS=sha256.o hkdf.o hmac.o sha512.o lnsocket.o error.o handshake.o crypto.o bigsize.o commando.o bech32.o
 ARM64_OBJS=$(OBJS:.o=-arm64.o)
@@ -20,7 +20,7 @@ BINS=test lnrpc
 
 DEPS=$(OBJS) $(ARS) $(HEADERS)
 
-all: $(BINS) lnsocket.a
+all: $(BINS) $(ARS)
 
 ios: target/ios/lnsocket.a target/ios/libsodium.a target/ios/libsecp256k1.a
 
@@ -146,6 +146,17 @@ deps/libsodium/libsodium-js/lib/libsodium.a: deps/libsodium/configure
 deps/libsodium/src/libsodium/.libs/libsodium.a: deps/libsodium/config.log
 	cd deps/libsodium/src/libsodium; \
 	make -j libsodium.la
+
+install: $(DEPS)
+	mkdir -p $(PREFIX)/lib $(PREFIX)/include
+	cp lnsocket.h $(PREFIX)/include
+	cp lnsocket.a libsecp256k1.a libsodium.a $(PREFIX)/lib
+
+install-js: wasm
+	mkdir -p $(PREFIX)/share/lnsocket
+	cp target/wasm/lnsocket.wasm target/wasm/lnsocket.js $(PREFIX)/share/lnsocket
+
+install-all: install install-js
 
 check: test
 	@./test
