@@ -34,7 +34,7 @@ libsodium-1.0.18-stable.tar.gz:
 
 deps/libsodium/configure: libsodium-1.0.18-stable.tar.gz
 	tar xvf $^; \
-	@mkdir -p deps; \
+	mkdir -p deps; \
 	mv libsodium-stable deps/libsodium
 
 deps/secp256k1/.git:
