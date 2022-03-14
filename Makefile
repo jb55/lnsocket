@@ -161,6 +161,9 @@ install-all: install install-js
 check: test
 	@./test
 
+gocheck:
+	go test ./lnsocket.go
+
 test: test.o $(DEPS)
 	@echo "ld test"
 	@$(CC) $(CFLAGS) test.o $(OBJS) $(ARS) $(LDFLAGS) -o $@
