@@ -272,4 +272,4 @@ async function lnsocket_init() {
 	return LNSocket
 }
 
-Module.init = lnsocket_init
+Module.init = Module.lnsocket_init = lnsocket_init
