@@ -176,6 +176,10 @@ func (ln *LNSocket) rpcReadAll() (string, error) {
 	}
 }
 
+func (ln *LNSocket) Disconnect() {
+	ln.Conn.Close()
+}
+
 func (ln *LNSocket) ConnectAndInit(hostname string, pubkey string) error {
 	err := ln.Connect(hostname, pubkey)
 	if err != nil {
