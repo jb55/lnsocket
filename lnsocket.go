@@ -135,7 +135,7 @@ func (ln *LNSocket) Rpc(token string, method string, params string) (string, err
 		return "", err
 	}
 
-	return ln.RpcReadAll()
+	return ln.rpcReadAll()
 }
 
 func ParseMsgType(bytes []byte) uint16 {
@@ -156,7 +156,7 @@ func (ln *LNSocket) Recv() (uint16, []byte, error) {
 	return msgtype, res[2:], nil
 }
 
-func (ln *LNSocket) RpcReadAll() (string, error) {
+func (ln *LNSocket) rpcReadAll() (string, error) {
 	all := []byte{}
 	for {
 		msgtype, res, err := ln.Recv()
