@@ -1,4 +1,4 @@
-module github.com/jb55/lnsocket
+module github.com/jb55/lnsocket/go
 
 require (
 	github.com/btcsuite/btcd v0.22.0-beta.0.20211005184431-e3449998be39
