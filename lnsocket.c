@@ -110,6 +110,7 @@ int EXPORT lnsocket_make_default_initmsg(unsigned char *msgbuf, int buflen)
 	u8 features[5] = {0};
 	u16 len;
 
+	/*
 	const u8 genesis_block[]  = {
 	  0x6f, 0xe2, 0x8c, 0x0a, 0xb6, 0xf1, 0xb3, 0x72, 0xc1, 0xa6, 0xa2, 0x46,
 	  0xae, 0x63, 0xf7, 0x4f, 0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c,
@@ -122,12 +123,16 @@ int EXPORT lnsocket_make_default_initmsg(unsigned char *msgbuf, int buflen)
 				&network_tlv))
 		return 0;
 
+
 	const struct tlv *init_tlvs[] = { &network_tlv } ;
+	*/
+
+	const struct tlv *init_tlvs[] = { } ;
 
 	if (!lnsocket_make_init_msg(msgbuf, buflen,
 			global_features, sizeof(global_features),
 			features, sizeof(features),
-			init_tlvs, 1,
+			init_tlvs, 0,
 			&len))
 		return 0;
 
