@@ -11,7 +11,7 @@ IOS_SDK=$(XCODEDIR)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk
 
 HEADERS=config.h deps/secp256k1/include/secp256k1.h deps/libsodium/src/libsodium/include/sodium/crypto_aead_chacha20poly1305.h
 ARS=libsecp256k1.a libsodium.a lnsocket.a
-WASM_ARS=target/wasm/libsecp256k1.a target/wasm/libsodium.a target/wasm/lnsocket.a
+WASM_ARS=target/js/libsecp256k1.a target/js/libsodium.a target/js/lnsocket.a
 OBJS=sha256.o hkdf.o hmac.o sha512.o lnsocket.o error.o handshake.o crypto.o bigsize.o commando.o bech32.o
 ARM64_OBJS=$(OBJS:.o=-arm64.o)
 X86_64_OBJS=$(OBJS:.o=-x86_64.o)
@@ -24,9 +24,16 @@ all: $(BINS) $(ARS)
 
 ios: target/ios/lnsocket.a target/ios/libsodium.a target/ios/libsecp256k1.a
 
-wasm: target/wasm/lnsocket.js target/wasm/lnsocket.wasm
+js: target/js/lnsocket.js target/js/lnsocket.wasm
 
-target/wasm/lnsocket.js: target/tmp/lnsocket.js lnsocket_lib.js
+node: target/node/lnsocket.js target/node/lnsocket.wasm
+
+target/node/lnsocket.js: target/tmp/node/lnsocket.js lnsocket_lib.js
+	@mkdir -p target/node
+	cat $^ > $@
+
+target/js/lnsocket.js: target/tmp/js/lnsocket.js lnsocket_lib.js
+	@mkdir -p target/js
 	cat $^ > $@
 
 libsodium-1.0.18-stable.tar.gz:
@@ -51,8 +58,8 @@ target/x86_64/lnsocket.a: $(X86_64_OBJS)
 	@mkdir -p target/x86_64
 	ar rcs $@ $^
 
-target/wasm/lnsocket.a: $(WASM_OBJS)
-	@mkdir -p target/wasm
+target/js/lnsocket.a: $(WASM_OBJS)
+	@mkdir -p target/js
 	emar rcs $@ $^
 
 target/ios/lnsocket.a: target/x86_64/lnsocket.a target/arm64/lnsocket.a
@@ -121,12 +128,12 @@ target/ios/libsecp256k1.a: deps/secp256k1/libsecp256k1-ios/lib/libsecp256k1.a
 	@mkdir -p target/ios
 	cp $< $@
 
-target/wasm/libsecp256k1.a: deps/secp256k1/libsecp256k1-wasm/lib/libsecp256k1.a
-	@mkdir -p target/wasm
+target/js/libsecp256k1.a: deps/secp256k1/libsecp256k1-wasm/lib/libsecp256k1.a
+	@mkdir -p target/js
 	cp $< $@
 
-target/wasm/libsodium.a: deps/libsodium/libsodium-js/lib/libsodium.a
-	@mkdir -p target/wasm
+target/js/libsodium.a: deps/libsodium/libsodium-js/lib/libsodium.a
+	@mkdir -p target/js
 	cp $< $@
 
 deps/libsodium/libsodium-ios/lib/libsodium.a: deps/libsodium/configure
@@ -152,9 +159,13 @@ install: $(DEPS)
 	cp lnsocket.h $(PREFIX)/include
 	cp lnsocket.a libsecp256k1.a libsodium.a $(PREFIX)/lib
 
-install-js: wasm
+install-js: js
 	mkdir -p $(PREFIX)/share/lnsocket
-	cp target/wasm/lnsocket.wasm target/wasm/lnsocket.js $(PREFIX)/share/lnsocket
+	cp target/js/lnsocket.wasm target/js/lnsocket.js $(PREFIX)/share/lnsocket
+
+dist-node: node
+	@mkdir -p dist/node
+	cp target/node/lnsocket.wasm target/node/lnsocket.js dist/node
 
 install-all: install install-js
 
@@ -172,12 +183,19 @@ lnrpc: lnrpc.o $(DEPS)
 	@echo "ld lnrpc"
 	@$(CC) $(CFLAGS) lnrpc.o $(OBJS) $(ARS) $(LDFLAGS) -o $@
 
-target/wasm/lnsocket.wasm: target/tmp/lnsocket.js
-	cp target/tmp/lnsocket.wasm target/wasm/lnsocket.wasm
+target/js/lnsocket.wasm: target/tmp/js/lnsocket.js
+	cp target/tmp/js/lnsocket.wasm target/js/lnsocket.wasm
 
-target/tmp/lnsocket.js: $(WASM_ARS) lnsocket_pre.js
-	@mkdir -p target/tmp
-	emcc --pre-js lnsocket_pre.js -s ENVIRONMENT=web -s MODULARIZE -flto -s 'EXPORTED_FUNCTIONS=["_malloc", "_free"]' -s EXPORTED_RUNTIME_METHODS=ccall,cwrap $(CFLAGS) -Wl,-whole-archive $(WASM_ARS) -Wl,-no-whole-archive -o target/tmp/lnsocket.js
+target/node/lnsocket.wasm: target/tmp/node/lnsocket.js
+	cp target/tmp/node/lnsocket.wasm target/node/lnsocket.wasm
+
+target/tmp/node/lnsocket.js: $(WASM_ARS) lnsocket_pre.js
+	@mkdir -p target/tmp/node
+	emcc --pre-js lnsocket_pre.js -s MODULARIZE -flto -s 'EXPORTED_FUNCTIONS=["_malloc", "_free"]' -s EXPORTED_RUNTIME_METHODS=ccall,cwrap $(CFLAGS) -Wl,-whole-archive $(WASM_ARS) -Wl,-no-whole-archive -o $@
+
+target/tmp/js/lnsocket.js: $(WASM_ARS) lnsocket_pre.js
+	@mkdir -p target/tmp/js
+	emcc --pre-js lnsocket_pre.js -s ENVIRONMENT=web -s MODULARIZE -flto -s 'EXPORTED_FUNCTIONS=["_malloc", "_free"]' -s EXPORTED_RUNTIME_METHODS=ccall,cwrap $(CFLAGS) -Wl,-whole-archive $(WASM_ARS) -Wl,-no-whole-archive -o $@
 
 tags: fake
 	find . -name '*.c' -or -name '*.h' | xargs ctags

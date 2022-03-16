@@ -11,7 +11,6 @@
 /target
 TODO.bak
 *.a
-*.wasm
 /node_modules
 /libsodium*.tar.gz
 /deps/libsodium

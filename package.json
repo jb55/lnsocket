@@ -1,0 +1,13 @@
+{
+  "name": "lnsocket",
+  "description": "Connect to the lightning network",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/jb55/lnsocket"
+  },
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "tap": "~0.2.5"
+  }
+}

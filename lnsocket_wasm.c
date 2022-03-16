@@ -27,8 +27,6 @@ void* EMSCRIPTEN_KEEPALIVE lnsocket_act_one(struct lnsocket *ln, const char *nod
 	
 	new_handshake(ln->secp, &ln->handshake, &their_id);
 
-	printf("their_id node_id %s\n", node_id);
-
 	ln->handshake.side = INITIATOR;
 	ln->handshake.their_id = their_id;
 

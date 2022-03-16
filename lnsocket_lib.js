@@ -2,6 +2,58 @@
 async function lnsocket_init() {
 	const module = await Module()
 
+	function SocketImpl(host) {
+		if (!(this instanceof SocketImpl))
+			return new SocketImpl(host)
+
+		if (typeof WebSocket !== 'undefined') {
+			console.log("WebSocket", typeof WebSocket)
+			const ok = host.startsWith("ws://") || host.startsWith("wss://")
+			if (!ok)
+				throw new Error("host must start with ws:// or wss://")
+			const ws = new WebSocket(host)
+			ws.ondata = function(fn) {
+				ws.onmessage = (v) => {
+					fn(v.data.arrayBuffer())
+				}
+			}
+			return ws
+		}
+
+		//
+		// we're in nodejs
+		//
+		const net = require('net')
+		let [hostname,port] = host.split(":")
+		port = +port || 9735
+		const socket = net.createConnection(port, hostname, () => {
+			socket.emit("open")
+		})
+		socket.addEventListener = socket.on.bind(socket)
+
+		if (socket.onmessage)
+			throw new Error("socket already has onmessage?")
+
+		socket.ondata = (fn) => {
+			socket.on('data', fn)
+		}
+
+		socket.close = () => {
+			socket.destroy()
+		}
+
+		if (socket.send)
+			throw new Error("socket already has send?")
+
+		socket.send = function socket_send(data) {
+			return new Promise((resolve, reject) => {
+				socket.write(data, resolve)
+			});
+		}
+
+		return socket
+	}
+
 	const ACT_ONE_SIZE = 50
 	const ACT_TWO_SIZE = 50
 	const ACT_THREE_SIZE = 66
@@ -120,7 +172,6 @@ async function lnsocket_init() {
 
 	LNSocket.prototype.recv = async function lnsocket_recv() {
 		const msg = await this.read()
-		console.log("recv", msg)
 		const msgtype = parse_msgtype(msg.slice(0,2))
 		return [msgtype, msg.slice(2)]
 	}
@@ -223,13 +274,11 @@ async function lnsocket_init() {
 	LNSocket.prototype.perform_init = async function lnsocket_connect() {
 		await this.read()
 		const our_init = this.make_default_initmsg()
-		console.log("our_init", our_init)
 		this.write(our_init)
 	}
 
 	LNSocket.prototype.ping_pong = async function lnsocket_ping_pong() {
 		const pingmsg = this.make_ping_msg()
-		console.log("ping", pingmsg)
 		this.write(pingmsg)
 		return await this.read()
 	}
@@ -243,17 +292,14 @@ async function lnsocket_init() {
 	}
 
 	function handle_connect(ln, node_id, host) {
-		const isws = host.startsWith("ws://") || host.startsWith("wss://")
-		if (!isws)
-			throw new Error("host must start with ws:// or wss://")
-		const ws = new WebSocket(host)
+		const ws = new SocketImpl(host)
 		return new Promise((resolve, reject) => {
 			const timeout = ln.opts.timeout || DEFAULT_TIMEOUT
 			const timer = setTimeout(reject, timeout);
 
-			ws.onmessage = (v) => {
-				ln.queue.push(v.data.arrayBuffer())
-			}
+			ws.ondata((v) => {
+				ln.queue.push(v)
+			});
 
 			ws.addEventListener('open', function(ev) {
 				ln.ws = ws
@@ -264,7 +310,6 @@ async function lnsocket_init() {
 
 			ws.addEventListener('close', function(ev) {
 				ln.connected = false
-				console.log("closed websocket connection")
 			});
 		})
 	}

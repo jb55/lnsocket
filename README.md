@@ -35,14 +35,19 @@ This will build `lnsocket.a`, `libsodium.a` and `libsecp256k1.a` under
 
 ### WASM/JS/Web
 
-    $ make wasm
+    $ make js
 
-This will build `lnsocket.js` and `lnsocket.wasm` in `target/wasm` so that you
+This will build `lnsocket.js` and `lnsocket.wasm` in `target/js` so that you
 can connect to the lightning network from your browser via websockets. See
-[lnsocket_example.js](lnsocket_example.js) for a demo.
+[websockets.js](examples/websockets.js) for a demo.
 
+### NodeJS
 
-## Examples
+    $ npm install --save lnsocket
+
+See [node.js](examples/node.js)
+
+## C Examples
 
 * See [test.c](test.c) for a ping/pong example
 
