@@ -11,6 +11,7 @@
 /target
 TODO.bak
 *.a
-/node_modules
+node_modules
+package-lock.json
 /libsodium*.tar.gz
 /deps

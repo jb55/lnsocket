@@ -1,0 +1,18 @@
+{
+  "name": "examples",
+  "description": "lnsocket examples",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/jb55/examples"
+  },
+  "main": "node.js",
+  "scripts": {
+    "test": "tap test/*.js"
+  },
+  "dependencies": {
+    "lnsocket": "^0.2.0"
+  },
+  "devDependencies": {
+    "tap": "~0.2.5"
+  }
+}
