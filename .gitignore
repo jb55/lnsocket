@@ -14,4 +14,4 @@ TODO.bak
 node_modules
 package-lock.json
 /libsodium*.tar.gz
-/deps
+/deps/libsodium
