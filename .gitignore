@@ -13,4 +13,4 @@ TODO.bak
 *.a
 /node_modules
 /libsodium*.tar.gz
-/deps/libsodium
+/deps
