@@ -16,7 +16,7 @@ async function go() {
 	    }
 	})
 	
-	ln.disconnect()
+	ln.destroy()
 	console.log(summary.result)
 	return summary.result
 }

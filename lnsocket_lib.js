@@ -63,6 +63,7 @@ async function lnsocket_init() {
 	const COMMANDO_REPLY_TERM = 0x594d
 
 	const lnsocket_create = module.cwrap("lnsocket_create", "number")
+	const lnsocket_destroy = module.cwrap("lnsocket_destroy", "number")
 	const lnsocket_encrypt = module.cwrap("lnsocket_encrypt", "number", ["int", "array", "int", "int"])
 	const lnsocket_decrypt = module.cwrap("lnsocket_decrypt", "number", ["int", "array", "int"])
 	const lnsocket_msgbuf = module.cwrap("lnsocket_msgbuf", "number", ["int"])
@@ -289,6 +290,11 @@ async function lnsocket_init() {
 			return true
 		}
 		return false
+	}
+
+	LNSocket.prototype.destroy = function _lnsocket_destroy() {
+		this.disconnect()
+		lnsocket_destroy(this.ln)
 	}
 
 	function handle_connect(ln, node_id, host) {

@@ -15,3 +15,4 @@ node_modules
 package-lock.json
 /libsodium*.tar.gz
 /deps/libsodium
+/deps/secp256k1
