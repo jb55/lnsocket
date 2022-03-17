@@ -1,4 +1,4 @@
-const lnsocket_init = require('lnsocket')
+const LNSocket = require('lnsocket')
 
 async function go() {
 	const ln = await LNSocket()
