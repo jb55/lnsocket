@@ -39,28 +39,47 @@ This will build `lnsocket.a`, `libsodium.a` and `libsecp256k1.a` under
 
 This will build `lnsocket.js` and `lnsocket.wasm` in `target/js` so that you
 can connect to the lightning network from your browser via websockets. See
-[examples/websockets.js](examples/websockets.js) for a demo.
+`examples/websockets.js`[^1] for a demo.
 
 ### NodeJS
 
     $ npm install --save lnsocket
 
-See [examples/node.js](examples/node.js)
+See `examples/node.js`[^2]
+
+### Go
+
+There is a Go version of lnsocket written using lnd's brontide[^6].
+
+You can import it via:
+
+    import "github.com/jb55/lnsocket/go"
+
+It is currently used in fiatjaf's makeinvoice go library[^7] if you want an
+example of its usage.
 
 ## C Examples
 
-* See [test.c](test.c) for a ping/pong example
+* See `test.c`[^3] for a ping/pong example
 
-* See [lnrpc.c](lnrpc.c) for an RPC example
+* See `lnrpc.c`[^4] for an RPC example
 
 ## Contributing
 
-Send patches to [jb55@jb55.com](mailto:jb55@jb55.com):
+Send patches to `jb55@jb55.com`
 
     $ git config format.subjectPrefix 'PATCH lnsocket'
     $ git config sendemail.to 'William Casarin <jb55@jb55.com>'
     $ git send-email --annotate HEAD^
 
-See [git-send-email.io](https://git-send-email.io/) for configuring your mailer
+See git-send-email.io[^4] for configuring your mailer
 
-You can [open a PR on github](https://github.com/jb55/lnsocket) as well
+You can open a PR on github[^5] as well
+
+[^1]: examples/websockets.js
+[^2]: examples/node.js
+[^3]: test.c
+[^4]: https://git-send-email.io/
+[^5]: https://github.com/jb55/lnsocket
+[^6]: https://github.com/lightningnetwork/lnd/tree/master/brontide
+[^7]: https://github.com/fiatjaf/makeinvoice/blob/d523b35084af04883f94323dc11a50c2a99d253d/makeinvoice.go#L366
