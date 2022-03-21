@@ -1,5 +1,7 @@
 dynamic lib
 automatic towire/fromwire serialization
 better helpers for building tlvs
-(B) nodejs lib
-(B) python bindings
+(C) python bindings
+(A) websocket test suite
+(B) nodejs tests
+C tests
