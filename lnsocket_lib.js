@@ -185,9 +185,11 @@ async function lnsocket_init() {
 			const res = await this.queue_recv()
 			count += res.byteLength
 			if (count > n) {
-				//console.log("count %d > n %d, queue: %d", count, n, this.queue.length)
+				//console.log("adding %d to count %d > n %d, queue: %d", res.byteLength, count, n, this.queue.length)
 				chunks.push(res.slice(0, n))
-				this.queue.unshift(res.slice(n))
+				const sliced = res.slice(n)
+				//console.log("unshifting %d bytes back to queue", sliced.byteLength)
+				this.queue.unshift(sliced)
 				break
 			} else if (count === n) {
 				//console.log("count %d === n %d, queue: %d", count, n, this.queue.length)
