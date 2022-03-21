@@ -66,6 +66,7 @@ async function lnsocket_init() {
 	const lnsocket_destroy = module.cwrap("lnsocket_destroy", "number")
 	const lnsocket_encrypt = module.cwrap("lnsocket_encrypt", "number", ["int", "array", "int", "int"])
 	const lnsocket_decrypt = module.cwrap("lnsocket_decrypt", "number", ["int", "array", "int"])
+	const lnsocket_decrypt_header = module.cwrap("lnsocket_decrypt_header", "number", ["number", "array"])
 	const lnsocket_msgbuf = module.cwrap("lnsocket_msgbuf", "number", ["int"])
 	const lnsocket_act_one = module.cwrap("lnsocket_act_one", "number", ["number", "string"])
 	const lnsocket_act_two = module.cwrap("lnsocket_act_two", "number", ["number", "array"])
@@ -77,7 +78,9 @@ async function lnsocket_init() {
 
 	function concat_u8_arrays(arrays) {
 		// sum of individual array lengths
-		let totalLength = arrays.reduce((acc, value) => acc + value.length, 0);
+		let totalLength = arrays.reduce((acc, value) =>
+			acc + (value.length || value.byteLength)
+		, 0);
 
 		if (!arrays.length) return null;
 
@@ -85,23 +88,15 @@ async function lnsocket_init() {
 
 		let length = 0;
 		for (let array of arrays) {
-			result.set(array, length);
-			length += array.length;
+			if (array instanceof ArrayBuffer)
+				result.set(new Uint8Array(array), length);
+			else
+				result.set(array, length);
+
+			length += (array.length || array.byteLength);
 		}
 
 		return result;
-	}
-
-	function queue_recv(queue) {
-		return new Promise((resolve, reject) => {
-			const checker = setInterval(() => {
-				const val = queue.shift()
-				if (val) {
-					clearInterval(checker)
-					resolve(val)
-				}
-			}, 5);
-		}) 
 	}
 
 	function parse_msgtype(buf) {
@@ -121,6 +116,22 @@ async function lnsocket_init() {
 		}
 		this.queue = []
 		this.ln = lnsocket_create()
+	}
+
+	LNSocket.prototype.queue_recv = function() {
+		let self = this
+		return new Promise((resolve, reject) => {
+			const checker = setInterval(() => {
+				const val = self.queue.shift()
+				if (val) {
+					clearInterval(checker)
+					resolve(val)
+				} else if (!self.connected) {
+					clearInterval(checker)
+					reject()
+				}
+			}, 5);
+		})
 	}
 
 	LNSocket.prototype.print_errors = function _lnsocket_print_errors() {
@@ -152,8 +163,8 @@ async function lnsocket_init() {
 
 		const act1 = this.act_one_data(node_id)
 		this.ws.send(act1)
-		const act2 = await this.read_clear()
-		if (act2.byteLength != ACT_TWO_SIZE) {
+		const act2 = await this.read_all(ACT_TWO_SIZE)
+		if (act2.length != ACT_TWO_SIZE) {
 			throw new Error(`expected act2 to be ${ACT_TWO_SIZE} long, got ${act2.length}`)
 		}
 		const act3 = this.act_two(act2)
@@ -165,16 +176,51 @@ async function lnsocket_init() {
 		await this.perform_init()
 	}
 
+	LNSocket.prototype.read_all = async function read_all(n) {
+		let count = 0
+		let chunks = []
+		if (!this.connected)
+			throw new Error("read_all: not connected")
+		while (true) {
+			const res = await this.queue_recv()
+			count += res.byteLength
+			if (count > n) {
+				//console.log("count %d > n %d, queue: %d", count, n, this.queue.length)
+				chunks.push(res.slice(0, n))
+				this.queue.unshift(res.slice(n))
+				break
+			} else if (count === n) {
+				//console.log("count %d === n %d, queue: %d", count, n, this.queue.length)
+				chunks.push(res)
+				break
+			} else {
+				//console.log("count %d < n %d, queue: %d", count, n, this.queue.length)
+				chunks.push(res)
+			}
+		}
+
+		return concat_u8_arrays(chunks)
+	}
+
+	LNSocket.prototype.read_header = async function read_header() {
+		const header = await this.read_all(18)
+		if (header.length != 18)
+			throw new Error("Failed to read header")
+		return lnsocket_decrypt_header(this.ln, header)
+	}
+
 	LNSocket.prototype.rpc = async function lnsocket_rpc(opts) {
 		const msg = this.make_commando_msg(opts)
 		this.write(msg)
-		return JSON.parse(await this.read_all_rpc())
+		const res = await this.read_all_rpc()
+		return JSON.parse(res)
 	}
 
 	LNSocket.prototype.recv = async function lnsocket_recv() {
 		const msg = await this.read()
 		const msgtype = parse_msgtype(msg.slice(0,2))
-		return [msgtype, msg.slice(2)]
+		const res = [msgtype, msg.slice(2)]
+		return res
 	}
 
 	LNSocket.prototype.read_all_rpc = async function read_all_rpc() {
@@ -249,13 +295,10 @@ async function lnsocket_init() {
 		this.ws.send(this.encrypt(dat))
 	}
 
-	LNSocket.prototype.read_clear = async function _lnsocket_read() {
-		return (await queue_recv(this.queue))
-	}
-
 	LNSocket.prototype.read = async function _lnsocket_read() {
-		const enc = await this.read_clear()
-		return this.decrypt(new Uint8Array(enc))
+		const size = await this.read_header()
+		const enc = await this.read_all(size+16)
+		return this.decrypt(enc)
 	}
 
 	LNSocket.prototype.make_default_initmsg = function _lnsocket_make_default_initmsg() {

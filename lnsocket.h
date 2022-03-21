@@ -90,5 +90,6 @@ void EXPORT lnsocket_destroy(struct lnsocket *);
 void EXPORT lnsocket_print_errors(struct lnsocket *);
 int EXPORT lnsocket_make_default_initmsg(unsigned char *msgbuf, int buflen);
 int EXPORT lnsocket_encrypt(struct lnsocket *ln, const unsigned char *msg, unsigned short msglen);
+int EXPORT lnsocket_decrypt_header(struct lnsocket *ln, unsigned char *hdr);
 
 #endif /* LNSOCKET_H */

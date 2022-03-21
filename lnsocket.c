@@ -205,36 +205,18 @@ int lnsocket_recv(struct lnsocket *ln, u16 *msg_type, unsigned char **payload, u
 	return 1;
 }
 
-int EXPORT lnsocket_decrypt(struct lnsocket *ln, unsigned char *packet, int len)
+int EXPORT lnsocket_decrypt(struct lnsocket *ln, unsigned char *packet, int size)
 {
-	struct cursor read, enc, dec;
-	u8 hdr[18];
-	u16 size;
+	struct cursor enc, dec;
 
-	make_cursor(packet, packet + len, &read);
-	if (!cursor_pull(&read, hdr, 18)) {
-		return note_error(&ln->errs, "not enough bytes in header, have %d, need 18", len);
-	}
-
-	if (!cryptomsg_decrypt_header(&ln->crypto_state, hdr, &size)) {
-		return note_error(&ln->errs,
-				"Failed hdr decrypt with rn=%"PRIu64,
-				ln->crypto_state.rn-1);
-	}
-
+	make_cursor(packet, packet + size, &enc);
 	reset_cursor(&ln->msgbuf);
-	if (!cursor_slice(&ln->msgbuf, &dec, size))
+	if (!cursor_slice(&ln->msgbuf, &dec, size - 16))
 		return note_error(&ln->errs, "out of memory: %d + %d = %d > %d",
 				ln->msgbuf.end - ln->msgbuf.p, size,
 				ln->msgbuf.end - ln->msgbuf.p + size,
 				MSGBUF_MEM
 				);
-
-	if (size + 16 != read.end - read.p)
-		return note_error(&ln->errs, "expected enc body size of %d, got %d",
-				size + 16, read.end - read.p);
-
-	make_cursor(read.p, read.end, &enc);
 
 	if (!cryptomsg_decrypt_body(&ln->crypto_state,
 				enc.start, enc.end - enc.start,
@@ -242,6 +224,18 @@ int EXPORT lnsocket_decrypt(struct lnsocket *ln, unsigned char *packet, int len)
 		return note_error(&ln->errs, "error decrypting body");
 
 	return dec.end - dec.start;
+}
+
+// this is used in js
+int EXPORT lnsocket_decrypt_header(struct lnsocket *ln, unsigned char *hdr)
+{
+	u16 size;
+        if (!cryptomsg_decrypt_header(&ln->crypto_state, hdr, &size))
+                return note_error(&ln->errs,
+                                "Failed hdr decrypt with rn=%"PRIu64,
+                                ln->crypto_state.rn-1);
+
+	return size;
 }
 
 int lnsocket_read(struct lnsocket *ln, unsigned char **buf, unsigned short *len)
