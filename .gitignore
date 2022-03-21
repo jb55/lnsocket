@@ -16,3 +16,7 @@ package-lock.json
 /libsodium*.tar.gz
 /deps/libsodium
 /deps/secp256k1
+examples/lnsocket.js
+examples/lnsocket.wasm
+examples/websockets_big.js
+examples/websockets_big.html
