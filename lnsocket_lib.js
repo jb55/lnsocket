@@ -14,7 +14,8 @@ async function lnsocket_init() {
 			const ws = new WebSocket(host)
 			ws.ondata = function(fn) {
 				ws.onmessage = (v) => {
-					fn(v.data.arrayBuffer())
+					const data = v.data.arrayBuffer()
+					fn(data)
 				}
 			}
 			return ws
@@ -182,23 +183,21 @@ async function lnsocket_init() {
 		if (!this.connected)
 			throw new Error("read_all: not connected")
 		while (true) {
-			const res = await this.queue_recv()
-			count += res.byteLength
-			if (count > n) {
-				//console.log("adding %d to count %d > n %d, queue: %d", res.byteLength, count, n, this.queue.length)
-				chunks.push(res.slice(0, n))
-				const sliced = res.slice(n)
-				//console.log("unshifting %d bytes back to queue", sliced.byteLength)
-				this.queue.unshift(sliced)
+			let res = await this.queue_recv()
+
+			const remaining = n - count
+
+			if (res.byteLength > remaining) {
+				chunks.push(res.slice(0, remaining))
+				this.queue.unshift(res.slice(remaining))
 				break
-			} else if (count === n) {
-				//console.log("count %d === n %d, queue: %d", count, n, this.queue.length)
+			} else if (res.byteLength === remaining) {
 				chunks.push(res)
 				break
-			} else {
-				//console.log("count %d < n %d, queue: %d", count, n, this.queue.length)
-				chunks.push(res)
 			}
+
+			chunks.push(res)
+			count += res.byteLength
 		}
 
 		return concat_u8_arrays(chunks)

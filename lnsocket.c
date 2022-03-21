@@ -229,12 +229,11 @@ int EXPORT lnsocket_decrypt(struct lnsocket *ln, unsigned char *packet, int size
 // this is used in js
 int EXPORT lnsocket_decrypt_header(struct lnsocket *ln, unsigned char *hdr)
 {
-	u16 size;
-        if (!cryptomsg_decrypt_header(&ln->crypto_state, hdr, &size))
-                return note_error(&ln->errs,
-                                "Failed hdr decrypt with rn=%"PRIu64,
-                                ln->crypto_state.rn-1);
-
+	u16 size = 0;
+	if (!cryptomsg_decrypt_header(&ln->crypto_state, hdr, &size))
+		return note_error(&ln->errs,
+			"Failed hdr decrypt with rn=%"PRIu64,
+			ln->crypto_state.rn-1);
 	return size;
 }
 
