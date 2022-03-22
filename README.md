@@ -35,6 +35,8 @@ This will build `lnsocket.a`, `libsodium.a` and `libsecp256k1.a` under
 
 ### WASM/JS/Web
 
+There are packaged versions of the js build under [dist/js](dist/js)
+
     $ make js
 
 This will build `lnsocket.js` and `lnsocket.wasm` in `target/js` so that you

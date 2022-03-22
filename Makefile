@@ -167,6 +167,10 @@ dist-node: node
 	@mkdir -p dist/node
 	cp target/node/lnsocket.wasm target/node/lnsocket.js dist/node
 
+dist-js: js
+	@mkdir -p dist/js
+	cp target/js/lnsocket.wasm target/js/lnsocket.js dist/js
+
 install-all: install install-js
 
 check: test
