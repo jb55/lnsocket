@@ -35,6 +35,13 @@ This will build `lnsocket.a`, `libsodium.a` and `libsecp256k1.a` under
 
 ### WASM/JS/Web
 
+Building manually:
+
+    $ make js
+
+This will build `lnsocket.js` and `lnsocket.wasm` in `target/js` so that you
+can connect to the lightning network from your browser via websockets. 
+
 There are packaged versions of the js build under [dist/js](dist/js)
 
 If you are in a web environment that supports npm modules, you can import
@@ -51,13 +58,17 @@ async function makeRequest(method, params, rune) {
 }
 ```
 
-Building manually:
+The plain js file under [dist/js](dist/js) declares an `lnsocket_init()`
+function like so:
 
-    $ make js
+```js
+const LNSocket = await lnsocket_init()
+const ln = LNSocket()
 
-This will build `lnsocket.js` and `lnsocket.wasm` in `target/js` so that you
-can connect to the lightning network from your browser via websockets. See
-[examples/websockets.js](examples/websockets.js) for a demo.
+ln.genkey()
+```
+
+See [examples/websockets.js](examples/websockets.js) for a demo.
 
 ### NodeJS
 
