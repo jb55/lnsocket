@@ -37,6 +37,22 @@ This will build `lnsocket.a`, `libsodium.a` and `libsecp256k1.a` under
 
 There are packaged versions of the js build under [dist/js](dist/js)
 
+If you are in a web environment that supports npm modules, you can import
+lnsocket using npm:
+
+```js
+const LNSocket = require('lnsocket')
+
+async function makeRequest(method, params, rune) {
+  const ln = await LNSocket()
+  ln.genkey()
+  await ln.connect_and_init(node_id, host)
+  // ... etc
+}
+```
+
+Building manually:
+
     $ make js
 
 This will build `lnsocket.js` and `lnsocket.wasm` in `target/js` so that you
