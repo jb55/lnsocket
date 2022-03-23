@@ -174,7 +174,8 @@ dist-js: js
 install-all: install install-js
 
 check: ctest
-	@./ctest
+	./ctest
+	npm test
 
 gocheck:
 	go test ./lnsocket.go
