@@ -6,8 +6,10 @@
     "url": "https://github.com/jb55/lnsocket"
   },
   "main": "index.js",
-  "dependencies": {},
+  "scripts": {
+    "test": "tap test/*.js"
+  },
   "devDependencies": {
-    "tap": "~0.2.5"
+    "tap": "^0.2.6"
   }
 }

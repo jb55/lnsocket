@@ -3,6 +3,7 @@ Module.getRandomValue = (function() {
 	const crypto_ = typeof window_.crypto !== "undefined" ? window_.crypto : window_.msCrypto;
 
 	let randomBytesNode
+	let fn
 	if (!crypto_) {
 		randomBytesNode = require('crypto').randomBytes
 		fn = randomValuesNode 

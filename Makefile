@@ -173,13 +173,13 @@ dist-js: js
 
 install-all: install install-js
 
-check: test
-	@./test
+check: ctest
+	@./ctest
 
 gocheck:
 	go test ./lnsocket.go
 
-test: test.o $(DEPS)
+ctest: test.o $(DEPS)
 	@echo "ld test"
 	@$(CC) $(CFLAGS) test.o $(OBJS) $(ARS) $(LDFLAGS) -o $@
 
