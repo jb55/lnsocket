@@ -181,11 +181,11 @@ gocheck:
 	go test ./lnsocket.go
 
 ctest: test.o $(DEPS)
-	@echo "ld test"
+	@echo "ld $@"
 	@$(CC) $(CFLAGS) test.o $(OBJS) $(ARS) $(LDFLAGS) -o $@
 
 lnrpc: lnrpc.o $(DEPS)
-	@echo "ld lnrpc"
+	@echo "ld $@"
 	@$(CC) $(CFLAGS) lnrpc.o $(OBJS) $(ARS) $(LDFLAGS) -o $@
 
 target/js/lnsocket.wasm: target/tmp/js/lnsocket.js
