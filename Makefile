@@ -196,11 +196,11 @@ target/node/lnsocket.wasm: target/tmp/node/lnsocket.js
 
 target/tmp/node/lnsocket.js: $(WASM_ARS) lnsocket_pre.js
 	@mkdir -p target/tmp/node
-	emcc --pre-js lnsocket_pre.js -s MODULARIZE -flto -s 'EXPORTED_FUNCTIONS=["_malloc", "_free"]' -s EXPORTED_RUNTIME_METHODS=ccall,cwrap $(CFLAGS) -Wl,-whole-archive $(WASM_ARS) -Wl,-no-whole-archive -o $@
+	emcc --pre-js lnsocket_pre.js -s MODULARIZE -flto -s 'EXPORTED_FUNCTIONS=["_malloc", "_free"]' -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap"]' $(CFLAGS) -Wl,-whole-archive $(WASM_ARS) -Wl,-no-whole-archive -o $@
 
 target/tmp/js/lnsocket.js: $(WASM_ARS) lnsocket_pre.js
 	@mkdir -p target/tmp/js
-	emcc --pre-js lnsocket_pre.js -s ENVIRONMENT=web -s MODULARIZE -flto -s 'EXPORTED_FUNCTIONS=["_malloc", "_free"]' -s EXPORTED_RUNTIME_METHODS=ccall,cwrap $(CFLAGS) -Wl,-whole-archive $(WASM_ARS) -Wl,-no-whole-archive -o $@
+	emcc --pre-js lnsocket_pre.js -s ENVIRONMENT=web -s MODULARIZE -flto -s 'EXPORTED_FUNCTIONS=["_malloc", "_free"]' -s 'EXPORTED_RUNTIME_METHODS=["ccall","cwrap"]' $(CFLAGS) -Wl,-whole-archive $(WASM_ARS) -Wl,-no-whole-archive -o $@
 
 tags: fake
 	find . -name '*.c' -or -name '*.h' | xargs ctags
