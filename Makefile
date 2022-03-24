@@ -16,7 +16,7 @@ OBJS=sha256.o hkdf.o hmac.o sha512.o lnsocket.o error.o handshake.o crypto.o big
 ARM64_OBJS=$(OBJS:.o=-arm64.o)
 X86_64_OBJS=$(OBJS:.o=-x86_64.o)
 WASM_OBJS=$(OBJS:.o=-wasm.o) lnsocket_wasm-wasm.o
-BINS=test lnrpc
+BINS=ctest lnrpc
 
 DEPS=$(OBJS) $(ARS) $(HEADERS)
 
