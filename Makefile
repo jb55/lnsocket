@@ -66,15 +66,15 @@ target/ios/lnsocket.a: target/x86_64/lnsocket.a target/arm64/lnsocket.a
 	@mkdir -p target/ios
 	lipo -create $^ -output $@
 
-%-arm64.o: %.c config.h
+%-arm64.o: %.c $(HEADERS)
 	@echo "cc $@"
 	@$(CC) $(CFLAGS) -c $< -o $@ -arch arm64 -isysroot $(IOS_SDK) -target arm64-apple-ios -fembed-bitcode
 
-%-wasm.o: %.c config.h
+%-wasm.o: %.c $(HEADERS)
 	@echo "emcc $@"
 	@emcc $(CFLAGS) -c $< -o $@
 
-%-x86_64.o: %.c config.h
+%-x86_64.o: %.c $(HEADERS)
 	@echo "cc $@"
 	@$(CC) $(CFLAGS) -c $< -o $@ -arch x86_64 -isysroot $(SIM_SDK) -mios-simulator-version-min=6.0.0 -target x86_64-apple-ios-simulator
 
