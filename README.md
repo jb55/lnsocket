@@ -1,7 +1,7 @@
 
 # lnsocket
 
-A simple C library for sending messages over the lightning network
+A simple C, JS and Go library for sending messages over the lightning network.
 
 Thanks to Rusty and the clightning project for much of this code, I have
 adapted it to be more library friendly.
