@@ -453,7 +453,7 @@ static int act_two_initiator(struct lnsocket *ln, struct handshake *h)
 	ssize_t size;
 
 	if ((size = read(ln->socket, &h->act2, ACT_TWO_SIZE)) != ACT_TWO_SIZE) {
-		printf("read %ld bytes, expected %d\n", size, ACT_TWO_SIZE);
+		fprintf(stderr, "read %ld bytes, expected %d\n", size, ACT_TWO_SIZE);
 		return note_error(&ln->errs, "%s", strerror(errno));
 	}
 
