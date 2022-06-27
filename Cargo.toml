@@ -1,0 +1,23 @@
+[package]
+name = "lnsocket"
+version = "0.1.0"
+repository = "https://github.com/jb55/lnsocket"
+readme = "README.md"
+build = "build.rs"
+edition = "2018"
+
+[lib]
+name = "lnsocket"
+path = "rust/lib.rs"
+test = true
+crate-type = ["lib"]
+
+[dependencies]
+libc = "0.2"
+ffi_helpers = "0.3.0"
+
+[build-dependencies]
+cc = { version = "1.0", features = ["parallel"] }
+pkg-config = "0.3"
+bindgen = "0.60.0"
+syntex_syntax = "0.59.1"
