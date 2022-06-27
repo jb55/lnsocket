@@ -28,6 +28,12 @@ js: target/js/lnsocket.js target/js/lnsocket.wasm
 
 node: target/node/lnsocket.js target/node/lnsocket.wasm
 
+liblnsocket.a: lnsocket.a
+	cp lnsocket.a liblnsocket.a
+
+rust: liblnsocket.a
+	cargo build --release
+
 target/node/lnsocket.js: target/tmp/node/lnsocket.js lnsocket_lib.js
 	@mkdir -p target/node
 	cat $^ > $@
