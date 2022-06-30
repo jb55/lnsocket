@@ -87,6 +87,10 @@ You can import it via:
 It is currently used in fiatjaf's makeinvoice go library[^4] if you want an
 example of its usage.
 
+### Rust
+
+There are some initial rust bindings which you can build via: `make rust`
+
 ## C Examples
 
 * See [test.c](test.c) for a ping/pong example
