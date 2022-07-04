@@ -76,6 +76,7 @@ int lnsocket_make_init_msg(unsigned char *buf, int buflen, const unsigned char *
 int lnsocket_perform_init(struct lnsocket *ln);
 
 int lnsocket_connect(struct lnsocket *, const char *node_id, const char *host);
+int lnsocket_connect_tor(struct lnsocket *, const char *node_id, const char *host, const char *tor_proxy);
 
 int lnsocket_fd(struct lnsocket *, int *fd);
 int lnsocket_write(struct lnsocket *, const unsigned char *msg, unsigned short msg_len);

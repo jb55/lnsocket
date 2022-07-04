@@ -11,6 +11,8 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include <secp256k1.h>
 #include <secp256k1_ecdh.h>
@@ -31,6 +33,25 @@
 #define MSGBUF_MEM (65536*2)
 #define ERROR_MEM 4096
 #define DEFAULT_TIMEOUT 3000
+#define DEFAULT_TOR_TIMEOUT 10000
+
+// Tor socks define
+#define SOCKS_NOAUTH		0
+#define SOCKS_ERROR 	 0xff
+#define SOCKS_CONNECT		1
+#define SOCKS_TYP_IPV4		1
+#define SOCKS_DOMAIN		3
+#define SOCKS_TYP_IPV6		4
+#define SOCKS_V5            5
+
+#define MAX_SIZE_OF_SOCKS5_REQ_OR_RESP 255
+#define SIZE_OF_RESPONSE 		4
+#define SIZE_OF_REQUEST 		3
+#define SIZE_OF_IPV4_RESPONSE 	6
+#define SIZE_OF_IPV6_RESPONSE 	18
+#define SOCK_REQ_METH_LEN		3
+#define SOCK_REQ_V5_LEN			5
+#define SOCK_REQ_V5_HEADER_LEN	7
 
 int push_error(struct lnsocket *lnsocket, const char *err);
 
@@ -539,7 +560,55 @@ const char *parse_port(char *host)
 	return NULL;
 }
 
-int lnsocket_connect_with(struct lnsocket *ln, const char *node_id, const char *host, int timeout_ms)
+int lnsocket_handshake_with_tor(struct lnsocket *ln, const char *host, const char *port)
+{
+	// make the init request
+	u8 request[SIZE_OF_REQUEST] = { SOCKS_V5, 0x01, SOCKS_NOAUTH };
+	if (write(ln->socket, request, sizeof(request)) != sizeof(request)) {
+		return note_error(&ln->errs, "Failed writing request: %s",
+				  strerror(errno));
+	}
+
+	// read proxy response
+	u8 hdr[2];
+	if (!read(ln->socket, hdr, 2))
+		return note_error(&ln->errs,"Failed reading header");
+
+	if (hdr[1] == SOCKS_ERROR)
+		return note_error(&ln->errs,"Failed proxy authentication required");
+
+	// make the V5 request
+	size_t hlen = strlen(host);
+	u16 uport = htons(atoi(port));
+
+	u8 buffer[SOCK_REQ_V5_HEADER_LEN + hlen];
+	buffer[0] = SOCKS_V5;
+	buffer[1] = SOCKS_CONNECT;
+	buffer[2] = 0;
+	buffer[3] = SOCKS_DOMAIN;
+	buffer[4] = hlen;
+	memcpy(buffer + SOCK_REQ_V5_LEN, host, hlen);
+	memcpy(buffer + SOCK_REQ_V5_LEN + hlen, &uport, sizeof(uport));
+
+	if (write(ln->socket, buffer, sizeof(buffer)) != sizeof(buffer)) {
+		return note_error(&ln->errs,"Failed writing buffer: %s", strerror(errno));
+	}
+
+	// read completion
+	u8 inbuffer[SIZE_OF_IPV4_RESPONSE + SIZE_OF_RESPONSE];
+	if (!read_all(ln->socket, inbuffer, sizeof(inbuffer)))
+		return note_error(&ln->errs,"Failed reading inbuffer: %s", strerror(errno));
+	if (inbuffer[1] != '\0')
+		return note_error(&ln->errs,"Failed proxy connection: %d", inbuffer[1]);
+	if (inbuffer[3] == SOCKS_TYP_IPV6)
+		return note_error(&ln->errs,"Failed ipv6 not supported yet");
+	if (inbuffer[3] != SOCKS_TYP_IPV4)
+		return note_error(&ln->errs,"Failed only ipv4 supported");
+
+	return 1;
+}
+
+int lnsocket_connect_with(struct lnsocket *ln, const char *node_id, const char *host, const char *tor_proxy, int timeout_ms)
 {
 	int ret;
 	struct addrinfo *addrs = NULL;
@@ -566,11 +635,6 @@ int lnsocket_connect_with(struct lnsocket *ln, const char *node_id, const char *
 	if (!pubkey_from_node_id(ln->secp, &their_id, &their_node_id))
 		return note_error(&ln->errs, "failed to convert node_id to pubkey");
 
-	// parse ip into addrinfo
-	const char *port = parse_port(onlyhost);
-	if ((ret = getaddrinfo(onlyhost, port ? port : "9735", NULL, &addrs)) || !addrs)
-		return note_error(&ln->errs, "%s", gai_strerror(ret));
-
 	// create our network socket for comms
 	if (!(ln->socket = socket(AF_INET, SOCK_STREAM, 0)))
 		return note_error(&ln->errs, "creating socket failed");
@@ -580,8 +644,25 @@ int lnsocket_connect_with(struct lnsocket *ln, const char *node_id, const char *
 	if (!io_fd_block(ln->socket, 0))
 		return note_error(&ln->errs, "failed setting socket to non-blocking");
 
-	// connect to the node!
-	connect(ln->socket, addrs->ai_addr, addrs->ai_addrlen);
+	if (tor_proxy != NULL) {
+		// connect to the tor proxy!
+		char proxyhost[strlen(tor_proxy)+1];
+		strncpy(proxyhost, tor_proxy, sizeof(proxyhost));
+		const char *port = parse_port(proxyhost);
+		struct sockaddr_in proxy_server;
+		proxy_server.sin_family = AF_INET;
+		proxy_server.sin_addr.s_addr = inet_addr(proxyhost);
+		proxy_server.sin_port = htons(port ? atoi(port) : 9050);
+		if (!connect(ln->socket, (struct sockaddr*) &proxy_server, sizeof(proxy_server)))
+			return note_error(&ln->errs, "Failed to connect");
+	} else {
+		// parse ip into addrinfo
+		const char *port = parse_port(onlyhost);
+		if ((ret = getaddrinfo(onlyhost, port ? port : "9735", NULL, &addrs)) || !addrs)
+			return note_error(&ln->errs, "%s", gai_strerror(ret));
+		// connect to the node!
+		connect(ln->socket, addrs->ai_addr, addrs->ai_addrlen);
+	}
 
 	if (!io_fd_block(ln->socket, 1))
 		return note_error(&ln->errs, "failed setting socket to blocking");
@@ -591,6 +672,13 @@ int lnsocket_connect_with(struct lnsocket *ln, const char *node_id, const char *
 		return note_error(&ln->errs, "select error");
 	} else if (ret == 0) {
 		return note_error(&ln->errs, "connection timeout");
+	}
+
+	if (tor_proxy != NULL) {
+		// connect to the node through tor proxy
+		const char *port = parse_port(onlyhost);
+		if (!lnsocket_handshake_with_tor(ln, onlyhost, port ? port : "9735"))
+			return note_error(&ln->errs, "failed handshake with tor proxy");
 	}
 
 	// prepare some data for ACT1
@@ -605,7 +693,12 @@ int lnsocket_connect_with(struct lnsocket *ln, const char *node_id, const char *
 
 int lnsocket_connect(struct lnsocket *ln, const char *node_id, const char *host)
 {
-	return lnsocket_connect_with(ln, node_id, host, DEFAULT_TIMEOUT);
+	return lnsocket_connect_with(ln, node_id, host, NULL, DEFAULT_TIMEOUT);
+}
+
+int lnsocket_connect_tor(struct lnsocket *ln, const char *node_id, const char *host, const char *tor_proxy)
+{
+	return lnsocket_connect_with(ln, node_id, host, tor_proxy, DEFAULT_TOR_TIMEOUT);
 }
 
 int lnsocket_fd(struct lnsocket *ln, int *fd)
