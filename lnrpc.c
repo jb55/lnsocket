@@ -55,7 +55,7 @@ int main(int argc, const char *argv[])
 	const char *method = argv[4];
 	const char *params = argc < 7 ? argv[5] : NULL;
 
-	if (!(ok = lnsocket_connect(ln, nodeid, host)))
+	if (!(ok = lnsocket_connect(ln, nodeid, host, NULL)))
 		goto done;
 
 	if (!(ok = lnsocket_fd(ln, &socket)))

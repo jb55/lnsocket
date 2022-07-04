@@ -30,7 +30,7 @@ int main(int argc, const char *argv[])
 	lnsocket_genkey(ln);
 
 	const char *nodeid = "03f3c108ccd536b8526841f0a5c58212bb9e6584a1eb493080e7c1cc34f82dad71";
-	if (!(ok = lnsocket_connect(ln, nodeid, "24.84.152.187")))
+	if (!(ok = lnsocket_connect(ln, nodeid, "24.84.152.187", NULL)))
 		goto done;
 
 	if (!(ok = lnsocket_perform_init(ln)))
