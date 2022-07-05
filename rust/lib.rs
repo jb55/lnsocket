@@ -28,7 +28,12 @@ mod tests {
             let res_connect = {
                 let c_node_id = CString::new(node_id).unwrap();
                 let c_host = CString::new(host).unwrap();
-                lnsocket_connect(&mut socket, c_node_id.as_ptr(), c_host.as_ptr())
+                lnsocket_connect_tor(
+                    &mut socket,
+                    c_node_id.as_ptr(),
+                    c_host.as_ptr(),
+                    std::ptr::null(),
+                )
             };
             assert_eq!(res_connect, 1);
 
