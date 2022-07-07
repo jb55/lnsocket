@@ -61,10 +61,7 @@ mod tests {
                 assert_eq!(res_recv, 1);
                 let iptr = uptr as *mut i8;
                 if typ == 0x594d {
-                    CStr::from_ptr(iptr.offset(10))
-                        .to_str()
-                        .unwrap()
-                        .to_string()
+                    CStr::from_ptr(iptr.offset(8)).to_str().unwrap().to_string()
                 } else {
                     "other".to_string()
                 }
