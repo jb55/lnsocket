@@ -8,7 +8,7 @@ include!("bindings.rs");
 mod tests {
     use super::*;
     //use libc::*;
-    use std::ffi::{CString, CStr};
+    use std::ffi::{CStr, CString};
 
     #[test]
     fn testing() {
@@ -16,7 +16,7 @@ mod tests {
             let node_id = "023e60311d349ae482eebec19ad81dd2544b98fdd8151516fcf23d7bf6f55b0ed5";
             let host = "127.0.0.1";
             let rune = "lhE8z3BpHyqffEDDvhumRhl16MtNEU7g1CrZ6i-y2pg9MSZtZXRob2RebGlzdHxtZXRob2ReZ2V0fG1ldGhvZD1zdW1tYXJ5Jm1ldGhvZC9nZXRzaGFyZWRzZWNyZXQmbWV0aG9kL2xpc3RkYXRhc3RvcmU=";
-            
+
             let mut socket: lnsocket = {
                 let sock = lnsocket_create();
                 ffi_helpers::null_pointer_check!(sock);
@@ -42,7 +42,10 @@ mod tests {
 
             let method = "getinfo";
             let params = "[]";
-            let msg = format!("{{\"method\":\"{}\",\"params\":{},\"rune\":\"{}\"}}", method, params, rune);
+            let msg = format!(
+                "{{\"method\":\"{}\",\"params\":{},\"rune\":\"{}\"}}",
+                method, params, rune
+            );
             let res_write = {
                 let mut cmd = vec![];
                 cmd.append(&mut 0x4c4fu16.to_be_bytes().to_vec());
@@ -61,7 +64,10 @@ mod tests {
                 let res_recv = lnsocket_read(&mut socket, &mut uptr, &mut len);
                 assert_eq!(res_recv, 1);
                 let iptr = uptr as *mut i8;
-                CStr::from_ptr(iptr.offset(10)).to_str().unwrap().to_string()
+                CStr::from_ptr(iptr.offset(10))
+                    .to_str()
+                    .unwrap()
+                    .to_string()
             };
             assert!(response.len() > 0);
 
