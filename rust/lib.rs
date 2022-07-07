@@ -13,9 +13,9 @@ mod tests {
     #[test]
     fn testing() {
         unsafe {
-            let node_id = "023e60311d349ae482eebec19ad81dd2544b98fdd8151516fcf23d7bf6f55b0ed5";
-            let host = "127.0.0.1";
-            let rune = "lhE8z3BpHyqffEDDvhumRhl16MtNEU7g1CrZ6i-y2pg9MSZtZXRob2RebGlzdHxtZXRob2ReZ2V0fG1ldGhvZD1zdW1tYXJ5Jm1ldGhvZC9nZXRzaGFyZWRzZWNyZXQmbWV0aG9kL2xpc3RkYXRhc3RvcmU=";
+            let node_id = "03f3c108ccd536b8526841f0a5c58212bb9e6584a1eb493080e7c1cc34f82dad71";
+            let host = "monad.endpoint.jb55.com";
+            let rune = "uQux-hID66AX5rFUpkt1p9CU_7DsTMyUC4G5yq7-dcw9MTMmbWV0aG9kPWdldGluZm8=";
 
             let mut socket: lnsocket = {
                 let sock = lnsocket_create();
@@ -28,12 +28,7 @@ mod tests {
             let res_connect = {
                 let c_node_id = CString::new(node_id).unwrap();
                 let c_host = CString::new(host).unwrap();
-                lnsocket_connect_tor(
-                    &mut socket,
-                    c_node_id.as_ptr(),
-                    c_host.as_ptr(),
-                    std::ptr::null(),
-                )
+                lnsocket_connect(&mut socket, c_node_id.as_ptr(), c_host.as_ptr())
             };
             assert_eq!(res_connect, 1);
 
