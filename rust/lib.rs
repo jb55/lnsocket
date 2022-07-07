@@ -54,15 +54,20 @@ mod tests {
             let response = {
                 let mut len = 0u16;
                 let mut t: u8 = 0;
+                let mut typ: u16 = 0;
                 let addr = &mut t as *mut u8 as usize;
                 let mut uptr = addr as *mut u8;
-                let res_recv = lnsocket_read(&mut socket, &mut uptr, &mut len);
+                let res_recv = lnsocket_recv(&mut socket, &mut typ, &mut uptr, &mut len);
                 assert_eq!(res_recv, 1);
                 let iptr = uptr as *mut i8;
-                CStr::from_ptr(iptr.offset(10))
-                    .to_str()
-                    .unwrap()
-                    .to_string()
+                if typ == 0x594d {
+                    CStr::from_ptr(iptr.offset(10))
+                        .to_str()
+                        .unwrap()
+                        .to_string()
+                } else {
+                    "other".to_string()
+                }
             };
             assert!(response.len() > 0);
 
