@@ -211,7 +211,7 @@ clean: fake
 	rm -rf $(BINS) config.h $(OBJS) $(ARM64_OBJS) $(X86_64_OBJS) $(WASM_OBJS) target
 
 distclean: clean
-	rm -rf $(ARS) deps target
+	rm -rf $(ARS) liblnsocket.a deps target
 
 
 .PHONY: fake
