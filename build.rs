@@ -2,6 +2,7 @@ extern crate bindgen;
 
 use std::env;
 use std::path::PathBuf;
+use std::process::Command;
 
 #[derive(Debug)]
 struct IgnoreMacros(String);
@@ -17,14 +18,36 @@ impl bindgen::callbacks::ParseCallbacks for IgnoreMacros {
 }
 
 fn main() {
+    // fetch deps
+    std::process::Command::new("git")
+        .args([
+            "submodule",
+            "update",
+            "--init",
+            "--depth 1",
+            "--recommend-shallow",
+    ])
+    .output()
+    .expect("Failed to fetch git submodules!");
+
+    // Build the library
+    Command::new("make").status()
+    .expect("Failed to build library");
+
+    // Copy library
+    let lib_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
+    let input_path = lib_path.join("lnsocket.a");
+    let output_path = lib_path.join("liblnsocket.a");
+    let res = std::fs::copy(input_path, output_path);
+    println!("cargo:warning={:#?}",res);
+
     // Tell cargo to look for shared libraries in the specified directory
-    let lib_path = PathBuf::from(env::current_dir().unwrap());
     println!("cargo:rustc-link-search={}", lib_path.display());
 
     // Tell cargo to tell rustc to link the shared library.
-    println!("cargo:rustc-link-lib=lnsocket");
-    println!("cargo:rustc-link-lib=secp256k1");
-    println!("cargo:rustc-link-lib=sodium");
+    println!("cargo:rustc-link-lib=static=lnsocket");
+    println!("cargo:rustc-link-lib=static=secp256k1");
+    println!("cargo:rustc-link-lib=static=sodium");
 
     let ignored_macros = IgnoreMacros("IPPORT_RESERVED".to_string());
 
@@ -36,9 +59,8 @@ fn main() {
         // bindings for.
         .header("lnsocket.h")
         .header("lnsocket_internal.h")
-        .clang_arg("-Ideps/secp256k1/include")
-        .clang_arg("-Ideps/libsodium/src/libsodium/include")
-        .header("deps/secp256k1/include/secp256k1.h")
+        .clang_arg(format!("-I{}", lib_path.join("deps/secp256k1/include").display()))
+        .clang_arg(format!("-I{}", lib_path.join("deps/libsodium/src/libsodium/include").display()))
         .parse_callbacks(Box::new(ignored_macros))
         .trust_clang_mangling(false)
         // Finish the builder and generate the bindings.
