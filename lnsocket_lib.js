@@ -104,6 +104,16 @@ async function lnsocket_init() {
 		return buf[0] << 8 | buf[1]
 	}
 
+	function wasm_free(buf) {
+		module._free(buf);
+	}
+
+	function wasm_alloc(len) {
+		const buf = module._malloc(len);
+		module.HEAPU8.set(Uint8Array, buf);
+		return buf
+	}
+
 	function wasm_mem(ptr, size) {
 		return new Uint8Array(module.HEAPU8.buffer, ptr, size);
 	}
@@ -245,8 +255,7 @@ async function lnsocket_init() {
 	LNSocket.prototype.make_commando_msg = function _lnsocket_make_commando_msg(opts) {
 		const buflen = 4096
 		let len = 0;
-		const buf = module._malloc(buflen);
-		module.HEAPU8.set(Uint8Array, buf);
+		const buf = wasm_alloc(buflen);
 
 		const params = JSON.stringify(opts.params||{})
 		if (!(len = commando_make_rpc_msg(opts.method, params, opts.rune,
@@ -255,21 +264,20 @@ async function lnsocket_init() {
 		}
 
 		const dat = wasm_mem(buf, len)
-		module._free(buf);
+		wasm_free(buf);
 		return dat
 	}
 
 	LNSocket.prototype.make_ping_msg = function _lnsocket_make_ping_msg(num_pong_bytes=1, ignored_bytes=1)  {
 		const buflen = 32
 		let len = 0;
-		const buf = module._malloc(buflen);
-		module.HEAPU8.set(Uint8Array, buf);
+		const buf = wasm_alloc(buflen)
 
 		if (!(len = lnsocket_make_ping_msg(buf, buflen, num_pong_bytes, ignored_bytes)))
 			throw new Error("couldn't make ping msg");
 
 		const dat = wasm_mem(buf, len)
-		module._free(buf);
+		wasm_free(buf);
 		return dat
 	}
 
