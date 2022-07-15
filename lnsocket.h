@@ -87,6 +87,7 @@ int lnsocket_recv(struct lnsocket *, unsigned short *msg_type, unsigned char **p
 
 void* EXPORT lnsocket_secp(struct lnsocket *);
 void EXPORT lnsocket_genkey(struct lnsocket *);
+int EXPORT lnsocket_setkey(struct lnsocket *, const unsigned char key[32]);
 void EXPORT lnsocket_destroy(struct lnsocket *);
 void EXPORT lnsocket_print_errors(struct lnsocket *);
 int EXPORT lnsocket_make_default_initmsg(unsigned char *msgbuf, int buflen);

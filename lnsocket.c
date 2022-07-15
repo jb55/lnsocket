@@ -717,6 +717,19 @@ void lnsocket_genkey(struct lnsocket *ln)
 	ln->key = generate_key(ln->secp);
 }
 
+int lnsocket_setkey(struct lnsocket *ln, const unsigned char key[32])
+{
+	struct keypair k;
+	memcpy(k.priv.secret.data, key, 32);
+
+	if (!secp256k1_ec_pubkey_create(ln->secp, &k.pub.pubkey, k.priv.secret.data))
+		return 0;
+
+	ln->key = k;
+
+	return 1;
+}
+
 void lnsocket_print_errors(struct lnsocket *ln)
 {
 	print_error_backtrace(&ln->errs);
