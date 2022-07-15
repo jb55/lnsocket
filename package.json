@@ -1,7 +1,7 @@
 {
   "name": "lnsocket",
   "description": "Connect to the lightning network",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "repository": {
     "url": "https://github.com/jb55/lnsocket"
   },
