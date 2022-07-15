@@ -72,7 +72,8 @@ async function lnsocket_init() {
 	const lnsocket_act_one = module.cwrap("lnsocket_act_one", "number", ["number", "string"])
 	const lnsocket_act_two = module.cwrap("lnsocket_act_two", "number", ["number", "array"])
 	const lnsocket_print_errors = module.cwrap("lnsocket_print_errors", "int")
-	const lnsocket_genkey = module.cwrap("lnsocket_genkey", "int")
+	const lnsocket_genkey = module.cwrap("lnsocket_genkey", null, ["number"])
+	const lnsocket_setkey = module.cwrap("lnsocket_setkey", "number", ["number", "array"])
 	const lnsocket_make_default_initmsg = module.cwrap("lnsocket_make_default_initmsg", "int", ["int", "int"])
 	const lnsocket_make_ping_msg = module.cwrap("lnsocket_make_ping_msg", "int", ["int", "int", "int", "int"])
 	const commando_make_rpc_msg = module.cwrap("commando_make_rpc_msg", "int", ["string", "string", "string", "number", "int", "int"])
@@ -106,6 +107,46 @@ async function lnsocket_init() {
 
 	function wasm_free(buf) {
 		module._free(buf);
+	}
+
+	function char_to_hex(cstr) {
+		const c = cstr.charCodeAt(0)
+		// c >= 0 && c <= 9
+		if (c >= 48 && c <= 57) {
+			return c - 48;
+		}
+		// c >= a && c <= f
+		if (c >= 97 && c <= 102) {
+			return c - 97 + 10;
+		}
+		// c >= A && c <= F
+		if (c >= 65 && c <= 70) {
+			return c - 65 + 10;
+		}
+		return -1;
+	}
+
+
+	function hex_decode(str, buflen)
+	{
+		let bufsize = buflen || 33
+		let c1, c2
+		let i = 0
+		let j = 0
+		let buf = new Uint8Array(bufsize)
+		let slen = str.length
+		while (slen > 1) {
+			if (-1==(c1 = char_to_hex(str[j])) || -1==(c2 = char_to_hex(str[j+1])))
+				return null;
+			if (!bufsize)
+				return null;
+			j += 2
+			slen -= 2
+			buf[i++] = (c1 << 4) | c2
+			bufsize--;
+		}
+
+		return buf
 	}
 
 	function wasm_alloc(len) {
@@ -151,6 +192,15 @@ async function lnsocket_init() {
 
 	LNSocket.prototype.genkey = function _lnsocket_genkey() {
 		lnsocket_genkey(this.ln)
+	}
+
+	LNSocket.prototype.setkeyraw = function lnsocket_setkeyraw(rawkey) {
+		return lnsocket_setkey(this.ln, rawkey)
+	}
+
+	LNSocket.prototype.setkey = function _lnsocket_setkey(key) {
+		const rawkey = hex_decode(key)
+		return this.setkeyraw(rawkey)
 	}
 
 	LNSocket.prototype.act_one_data = function _lnsocket_act_one(node_id) {
