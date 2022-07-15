@@ -25,8 +25,12 @@ all: $(BINS) $(ARS)
 ios: target/ios/lnsocket.a target/ios/libsodium.a target/ios/libsecp256k1.a
 
 js: target/js/lnsocket.js target/js/lnsocket.wasm
+	@mkdir -p dist/js
+	cp target/js/lnsocket.wasm target/js/lnsocket.js dist/js
 
 node: target/node/lnsocket.js target/node/lnsocket.wasm
+	@mkdir -p dist/node
+	cp target/node/lnsocket.wasm target/node/lnsocket.js dist/node
 
 liblnsocket.a: lnsocket.a
 	cp lnsocket.a liblnsocket.a
@@ -168,14 +172,6 @@ install: $(DEPS)
 install-js: js
 	mkdir -p $(PREFIX)/share/lnsocket
 	cp target/js/lnsocket.wasm target/js/lnsocket.js $(PREFIX)/share/lnsocket
-
-dist-node: node
-	@mkdir -p dist/node
-	cp target/node/lnsocket.wasm target/node/lnsocket.js dist/node
-
-dist-js: js
-	@mkdir -p dist/js
-	cp target/js/lnsocket.wasm target/js/lnsocket.js dist/js
 
 install-all: install install-js
 
