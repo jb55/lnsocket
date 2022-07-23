@@ -20,6 +20,7 @@ int main(int argc, const char *argv[])
 {
 	static u8 msgbuf[4096];
 	u8 *buf;
+	u16 msgtype;
 	struct lnsocket *ln;
 
 	static unsigned char key[32] = {0};
@@ -58,11 +59,17 @@ int main(int argc, const char *argv[])
 	printf("sent ping ");
 	print_data(msgbuf, len);
 
-	if (!(ok = lnsocket_read(ln, &buf, &len)))
-		goto done;
+	for (int packets = 0; packets < 3; packets++) {
+		if (!(ok = lnsocket_recv(ln, &msgtype, &buf, &len)))
+			goto done;
 
-	printf("got ");
-	print_data(buf, len);
+		if (msgtype == WIRE_PONG) {
+			printf("got pong! ");
+			print_data(buf, len);
+			break;
+		}
+	}
+
 done:
 	lnsocket_print_errors(ln);
 	lnsocket_destroy(ln);

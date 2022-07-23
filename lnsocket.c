@@ -374,6 +374,63 @@ int lnsocket_make_network_tlv(unsigned char *buf, int buflen,
 	return 1;
 }
 
+int lnsocket_make_pong_msg(unsigned char *buf, int buflen, u16 num_pong_bytes)
+{
+	struct cursor msg;
+
+	make_cursor(buf, buf + buflen, &msg);
+
+	if (!cursor_push_u16(&msg, WIRE_PONG))
+		return 0;
+
+	// don't include itself
+	num_pong_bytes = num_pong_bytes <= 4 ? 0 : num_pong_bytes - 4;
+
+	if (!cursor_push_u16(&msg, num_pong_bytes))
+		return 0;
+
+	if (msg.p + num_pong_bytes > msg.end)
+		return 0;
+
+	memset(msg.p, 0, num_pong_bytes);
+	msg.p += num_pong_bytes;
+
+	return msg.p - msg.start;
+}
+
+static int lnsocket_decode_ping_payload(const unsigned char *payload, int payload_len, u16 *pong_bytes)
+{
+	struct cursor msg;
+
+	make_cursor((u8*)payload, (u8*)payload + payload_len, &msg);
+
+	if (!cursor_pull_u16(&msg, pong_bytes))
+		return 0;
+
+	return 1;
+}
+
+int lnsocket_make_pong_from_ping(unsigned char *buf, int buflen, const unsigned char *ping, u16 ping_len)
+{
+	u16 pong_bytes;
+
+	if (!lnsocket_decode_ping_payload(ping, ping_len, &pong_bytes))
+		return 0;
+
+	return lnsocket_make_pong_msg(buf, buflen, pong_bytes);
+}
+
+int lnsocket_pong(struct lnsocket *ln, const unsigned char *ping, u16 ping_len)
+{
+	unsigned char pong[0xFFFF];
+	u16 len;
+
+	if (!(len = lnsocket_make_pong_from_ping(pong, sizeof(pong), ping, ping_len)))
+		return 0;
+
+	return lnsocket_write(ln, pong, len);
+}
+
 int lnsocket_make_ping_msg(unsigned char *buf, int buflen, u16 num_pong_bytes, u16 ignored_bytes)
 {
 	struct cursor msg;

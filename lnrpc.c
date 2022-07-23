@@ -34,7 +34,7 @@ int main(int argc, const char *argv[])
 	//int verbose = 1;
 
 	timeout_str = getenv("LNRPC_TIMEOUT");
-	int timeout_ms = timeout_str ? atoi(timeout_str) : 5000;
+	int timeout_ms = timeout_str ? atoi(timeout_str) : 50000000;
 
 	timeout.tv_sec = timeout_ms / 1000;
 	timeout.tv_usec = (timeout_ms % 1000) * 1000;
@@ -101,6 +101,10 @@ int main(int argc, const char *argv[])
 		case COMMANDO_REPLY_CONTINUES:
 			printf("%.*s", len - 8, buf + 8);
 			continue;
+		case WIRE_PING:
+			if (!lnsocket_pong(ln, buf, len)) {
+				fprintf(stderr, "pong error...\n");
+			}
 		default:
 			// ignore extra interleaved messages which can happen
 			continue;

@@ -70,7 +70,6 @@ struct lnsocket EXPORT *lnsocket_create();
 /* messages */
 
 int lnsocket_make_network_tlv(unsigned char *buf, int buflen, const unsigned char **blockids, int num_blockids, struct tlv *tlv_out);
-int EXPORT lnsocket_make_ping_msg(unsigned char *buf, int buflen, unsigned short num_pong_bytes, unsigned short ignored_bytes);
 int lnsocket_make_init_msg(unsigned char *buf, int buflen, const unsigned char *globalfeatures, unsigned short gflen, const unsigned char *features, unsigned short flen, const struct tlv **tlvs, unsigned short num_tlvs, unsigned short *outlen);
 
 int lnsocket_perform_init(struct lnsocket *ln);
@@ -84,7 +83,12 @@ int lnsocket_read(struct lnsocket *, unsigned char **buf, unsigned short *len);
 
 int lnsocket_send(struct lnsocket *, unsigned short msg_type, const unsigned char *payload, unsigned short payload_len);
 int lnsocket_recv(struct lnsocket *, unsigned short *msg_type, unsigned char **payload, unsigned short *payload_len);
+int lnsocket_pong(struct lnsocket *, const unsigned char *ping, unsigned short ping_len);
 
+
+int EXPORT lnsocket_make_pong_from_ping(unsigned char *buf, int buflen, const unsigned char *ping, unsigned short ping_len);
+int EXPORT lnsocket_make_ping_msg(unsigned char *buf, int buflen, unsigned short num_pong_bytes, unsigned short ignored_bytes);
+int EXPORT lnsocket_make_pong_msg(unsigned char *buf, int buflen, unsigned short num_pong_bytes);
 void* EXPORT lnsocket_secp(struct lnsocket *);
 void EXPORT lnsocket_genkey(struct lnsocket *);
 int EXPORT lnsocket_setkey(struct lnsocket *, const unsigned char key[32]);
