@@ -7,7 +7,7 @@ import (
 	"io"
 	"net"
 
-	"github.com/btcsuite/btcd/btcec"
+	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/lightningnetwork/lnd/brontide"
 	"github.com/lightningnetwork/lnd/keychain"
 	"github.com/lightningnetwork/lnd/lnwire"
@@ -68,7 +68,7 @@ type LNSocket struct {
 }
 
 func (ln *LNSocket) GenKey() {
-	remotePriv, _ := btcec.NewPrivateKey(btcec.S256())
+	remotePriv, _ := btcec.NewPrivateKey()
 	ln.PrivKeyECDH = &keychain.PrivKeyECDH{PrivKey: remotePriv}
 }
 
@@ -87,7 +87,7 @@ func (ln *LNSocket) Connect(hostname string, pubkey string) error {
 	if err != nil {
 		return err
 	}
-	key, err := btcec.ParsePubKey(bytes, btcec.S256())
+	key, err := btcec.ParsePubKey(bytes)
 	if err != nil {
 		return err
 	}
