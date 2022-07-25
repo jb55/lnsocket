@@ -62,6 +62,7 @@ async function lnsocket_init() {
 
 	const COMMANDO_REPLY_CONTINUES = 0x594b
 	const COMMANDO_REPLY_TERM = 0x594d
+	const WIRE_PING = 18
 
 	const lnsocket_create = module.cwrap("lnsocket_create", "number")
 	const lnsocket_destroy = module.cwrap("lnsocket_destroy", "number")
@@ -76,6 +77,7 @@ async function lnsocket_init() {
 	const lnsocket_setkey = module.cwrap("lnsocket_setkey", "number", ["number", "array"])
 	const lnsocket_make_default_initmsg = module.cwrap("lnsocket_make_default_initmsg", "int", ["int", "int"])
 	const lnsocket_make_ping_msg = module.cwrap("lnsocket_make_ping_msg", "int", ["int", "int", "int", "int"])
+	const lnsocket_make_pong_from_ping = module.cwrap("lnsocket_make_pong_from_ping", "int", ["int", "int", "array", "int"])
 	const commando_make_rpc_msg = module.cwrap("commando_make_rpc_msg", "int", ["string", "string", "string", "number", "int", "int"])
 
 	function concat_u8_arrays(arrays) {
@@ -295,6 +297,16 @@ async function lnsocket_init() {
 			case COMMANDO_REPLY_CONTINUES:
 				chunks.push(msg.slice(8))
 				break
+			case WIRE_PING:
+				// cln will disconnect us eventually if we don't pong
+				const pong = this.make_pong(msg, msg.length)
+				if (pong) {
+					console.log("lnsocket: got ping -> sent pong", typ)
+					this.write(pong)
+				} else {
+					console.log("lnsocket: failed to create pong :(")
+				}
+				break
 			default:
 				console.log("got unknown type", typ)
 				continue
@@ -328,6 +340,16 @@ async function lnsocket_init() {
 
 		const dat = wasm_mem(buf, len)
 		wasm_free(buf);
+		return dat
+	}
+
+	LNSocket.prototype.make_pong = function _lnsocket_make_pong_msg(ping, ping_len) {
+		const buflen = 0xFFFF
+		const buf = wasm_alloc(buflen)
+		if (!lnsocket_make_pong_from_ping(buf, buflen, ping, ping.length))
+			return 0
+		const dat = wasm_mem(buf, 0xFFFF)
+		wasm_free(buf)
 		return dat
 	}
 
