@@ -105,7 +105,7 @@ deps/libsodium/src/libsodium/include/sodium/crypto_aead_chacha20poly1305.h: deps
 
 deps/secp256k1/config.log: deps/secp256k1/configure
 	cd deps/secp256k1; \
-	./configure --disable-shared --enable-module-ecdh
+	./configure --disable-shared --enable-module-ecdh --enable-module-extrakeys --enable-module-schnorrsig
 
 deps/libsodium/config.status: deps/libsodium/configure
 	cd deps/libsodium; \

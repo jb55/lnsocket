@@ -31,10 +31,7 @@ export LDFLAGS="-arch x86_64 -isysroot ${SDK} -mios-simulator-version-min=${IOS_
 
 make distclean > /dev/null
 
-./configure --host=x86_64-apple-darwin10 \
-            --disable-shared \
-	    --enable-module-ecdh \
-            --prefix="$SIMULATOR64_PREFIX"
+./configure --host=x86_64-apple-darwin10 --disable-shared --enable-module-ecdh --enable-module-schnorrsig --enable-module-extrakeys --prefix="$SIMULATOR64_PREFIX" 
 
 make -j3 install || exit 1
 
@@ -49,10 +46,7 @@ export LDFLAGS="-arch arm64 -isysroot ${SDK} -mios-version-min=${IOS_VERSION_MIN
 
 make distclean > /dev/null
 
-./configure --host=arm-apple-darwin10 \
-            --disable-shared \
-	    --enable-module-ecdh \
-            --prefix="$IOS64_PREFIX" || exit 1
+./configure --host=arm-apple-darwin10 --disable-shared --enable-module-ecdh --enable-module-schnorrsig --enable-module-extrakeys --prefix="$IOS64_PREFIX" || exit 1
 
 make -j3 install || exit 1
 
