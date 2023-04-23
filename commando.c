@@ -27,7 +27,7 @@ int EXPORT commando_make_rpc_msg(const char *method, const char *params,
 	cursor_push_str(&msgbuf, params) &&
 	cursor_push_str(&msgbuf, ",\"rune\":\"") &&
 	cursor_push_str(&msgbuf, rune) &&
-	cursor_push_str(&msgbuf, "\"}");
+	cursor_push_str(&msgbuf, "\",\"id\":\"d0\",\"jsonrpc\":\"2.0\"}");
 
 	if (!ok)
 		return 0;
