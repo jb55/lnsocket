@@ -47,7 +47,7 @@ target/js/lnsocket.js: target/tmp/js/lnsocket.js lnsocket_lib.js
 	cat $^ > $@
 
 libsodium-1.0.18-stable.tar.gz:
-	wget https://download.libsodium.org/libsodium/releases/libsodium-1.0.18-stable.tar.gz
+	curl -O https://download.libsodium.org/libsodium/releases/libsodium-1.0.18-stable.tar.gz
 
 deps/libsodium/configure: libsodium-1.0.18-stable.tar.gz
 	tar xvf $^; \
