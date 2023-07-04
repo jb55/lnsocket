@@ -4,9 +4,10 @@
 #include "endian.h"
 #include "commando.h"
 #include "export.h"
+#include <stdio.h>
 
 int EXPORT commando_make_rpc_msg(const char *method, const char *params,
-		const char *rune, unsigned int req_id, unsigned char *buf, int buflen)
+		const char *rune, const char *req_id, unsigned char *buf, int buflen)
 {
 	struct cursor msgbuf;
 	int ok;
@@ -27,7 +28,9 @@ int EXPORT commando_make_rpc_msg(const char *method, const char *params,
 	cursor_push_str(&msgbuf, params) &&
 	cursor_push_str(&msgbuf, ",\"rune\":\"") &&
 	cursor_push_str(&msgbuf, rune) &&
-	cursor_push_str(&msgbuf, "\",\"id\":\"d0\",\"jsonrpc\":\"2.0\"}");
+	cursor_push_str(&msgbuf, "\",\"id\":\"") &&
+	cursor_push_str(&msgbuf, req_id) &&
+	cursor_push_str(&msgbuf, "\",\"jsonrpc\":\"2.0\"}");
 
 	if (!ok)
 		return 0;
