@@ -22,3 +22,5 @@ examples/websockets_big.js
 examples/websockets_big.html
 rust/bindings.rs
 Cargo.lock
+
+*.swp
