@@ -57,7 +57,7 @@ func (msg *CommandoMsg) Encode(buf *bytes.Buffer, pver uint32) error {
 	buf.WriteString(msg.Params)
 	buf.WriteString(",\"rune\":\"")
 	buf.WriteString(msg.Rune)
-	buf.WriteString("\"}")
+	buf.WriteString("\",\"id\":\"d0\",\"jsonrpc\":\"2.0\"}")
 
 	return nil
 }
