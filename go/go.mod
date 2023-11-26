@@ -1,4 +1,4 @@
-module github.com/jb55/lnsocket/go
+module github.com/niftynei/lnsocket/go
 
 go 1.17
 
