@@ -26,6 +26,12 @@ type CommandoMsg struct {
 	Method    string
 	Params    string
 	RequestId string
+	ReturnQ   chan *CommandoResult
+}
+
+type CommandoResult struct {
+	Result    string
+	Err       error
 }
 
 func NewCommandoMsg(token string, method string, params string) CommandoMsg {
@@ -69,6 +75,7 @@ func (msg *CommandoMsg) Encode(buf *bytes.Buffer, pver uint32) error {
 type LNSocket struct {
 	Conn        net.Conn
 	PrivKeyECDH *keychain.PrivKeyECDH
+	Queue        chan *CommandoMsg
 }
 
 func (ln *LNSocket) GenKey() {
@@ -121,25 +128,26 @@ func (ln *LNSocket) PerformInit() error {
 		return err
 	}
 
+	ln.Queue = make(chan *CommandoMsg, 50)
+	go processQueue(ln)
+
 	return nil
 }
 
 func (ln *LNSocket) Rpc(token string, method string, params string) (string, error) {
+
+	if ln.Queue == nil {
+		return "", fmt.Errorf("Queue is shutdown, are you connected?")
+	}
+
 	commando_msg := NewCommandoMsg(token, method, params)
 
-	var b bytes.Buffer
-	_, err := lnwire.WriteMessage(&b, &commando_msg, 0)
-	if err != nil {
-		return "", err
-	}
+	commando_msg.ReturnQ = make(chan *CommandoResult)
 
-	bs := b.Bytes()
-	_, err = ln.Conn.Write(bs)
-	if err != nil {
-		return "", err
-	}
+	ln.Queue <- &commando_msg
+	result := <- commando_msg.ReturnQ
 
-	return ln.rpcReadAll()
+	return result.Result, result.Err
 }
 
 func ParseMsgType(bytes []byte) uint16 {
@@ -182,6 +190,41 @@ func (ln *LNSocket) rpcReadAll() (string, error) {
 
 func (ln *LNSocket) Disconnect() {
 	ln.Conn.Close()
+	close(ln.Queue)
+	ln.Queue = nil
+}
+
+func processQueue(ln *LNSocket) {
+	for {
+		commando_msg, more := <- ln.Queue
+
+		if !more {
+			return
+		}
+		var b bytes.Buffer
+		_, err := lnwire.WriteMessage(&b, commando_msg, 0)
+		if err != nil {
+			commando_msg.ReturnQ <- &CommandoResult{
+				Err: err,
+			}
+			continue
+		}
+
+		bs := b.Bytes()
+		_, err = ln.Conn.Write(bs)
+		if err != nil {
+			commando_msg.ReturnQ <- &CommandoResult{
+				Err: err,
+			}
+			continue
+		}
+
+		result, err := ln.rpcReadAll()
+		commando_msg.ReturnQ <- &CommandoResult{
+			Result: result,
+			Err: err,
+		}
+	}
 }
 
 func (ln *LNSocket) ConnectAndInit(hostname string, pubkey string) error {
