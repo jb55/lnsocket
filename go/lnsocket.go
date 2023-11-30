@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"math/rand"
 	"net"
 
 	"github.com/btcsuite/btcd/btcec/v2"
@@ -24,7 +25,7 @@ type CommandoMsg struct {
 	Rune      string
 	Method    string
 	Params    string
-	RequestId uint64
+	RequestId string
 }
 
 func NewCommandoMsg(token string, method string, params string) CommandoMsg {
@@ -32,6 +33,7 @@ func NewCommandoMsg(token string, method string, params string) CommandoMsg {
 		Rune:   token,
 		Method: method,
 		Params: params,
+		RequestId: fmt.Sprintf("lnsocket:%d", rand.Uint64()),
 	}
 }
 
@@ -47,7 +49,7 @@ func (msg *CommandoMsg) Decode(reader io.Reader, size uint32) error {
 }
 
 func (msg *CommandoMsg) Encode(buf *bytes.Buffer, pver uint32) error {
-	if err := lnwire.WriteUint64(buf, msg.RequestId); err != nil {
+	if err := lnwire.WriteUint64(buf, 0); err != nil {
 		return err
 	}
 
@@ -58,7 +60,7 @@ func (msg *CommandoMsg) Encode(buf *bytes.Buffer, pver uint32) error {
 	buf.WriteString(",\"rune\":\"")
 	buf.WriteString(msg.Rune)
 	buf.WriteString("\",\"id\":\"")
-	buf.WriteString(fmt.Sprintf("%d", msg.RequestId))
+	buf.WriteString(msg.RequestId)
 	buf.WriteString("\",\"jsonrpc\":\"2.0\"}")
 
 	return nil
